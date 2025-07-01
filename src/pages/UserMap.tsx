@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Button } from "@/components/ui/button";
@@ -6,31 +5,41 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Bell, Menu, MapPin, Clock, Navigation, User, Star, Settings } from "lucide-react";
 import { toast } from "sonner";
 import L from 'leaflet';
+
+// Import Leaflet CSS
 import 'leaflet/dist/leaflet.css';
 
-// Fix for default markers in react-leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+// Fix for default markers in react-leaflet - remove any existing icon URLs first
+if (L.Icon.Default.prototype._getIconUrl) {
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+}
+
+// Set up default marker icons
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconRetinaUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEMxOS40MDM2IDAgMjUgNS41OTY0NCAyNSAxMi41QzI1IDE5LjQwMzYgMTkuNDAzNiAyNSAxMi41IDI1QzUuNTk2NDQgMjUgMCAxOS40MDM2IDAgMTIuNUMwIDUuNTk2NDQgNS41OTY0NCAwIDEyLjUgMFoiIGZpbGw9IiMzMzc0RkYiLz4KPHBhdGggZD0iTTEyLjUgNDBMMTkuNjQyMSAyNi4yNUg1LjM1Nzg3TDEyLjUgNDBaIiBmaWxsPSIjMzM3NEZGII8+Cjwvc3ZnPgo=',
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEMxOS40MDM2IDAgMjUgNS41OTY0NCAyNSAxMi41QzI1IDE5LjQwMzYgMTkuNDAzNiAyNSAxMi41IDI1QzUuNTk2NDQgMjUgMCAxOS40MDM2IDAgMTIuNUMwIDUuNTk2NDQgNS41OTY0NCAwIDEyLjUgMFoiIGZpbGw9IiMzMzc0RkYiLz4KPHBhdGggZD0iTTEyLjUgNDBMMTkuNjQyMSAyNi4yNUg1LjM1Nzg3TDEyLjUgNDBaIiBmaWxsPSIjMzM3NEZGII8+Cjwvc3ZnPgo=',
+  shadowUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDIiIGhlaWdodD0iNDIiIHZpZXdCb3g9IjAgMCA0MiA0MiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGVsbGlwc2UgY3g9IjIxIiBjeT0iMzciIHJ4PSIyMSIgcnk9IjQiIGZpbGw9ImJsYWNrIiBmaWxsLW9wYWNpdHk9IjAuMiIvPgo8L3N2Zz4K'
 });
 
-// Custom icons
+// Custom bus icon
 const busIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiByeD0iNSIgZmlsbD0iI0ZGNjUwMCIvPgo8dGV4dCB4PSIxNSIgeT0iMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwiPuC4oTwvdGV4dD4KPC9zdmc+',
   iconSize: [30, 30],
   iconAnchor: [15, 15],
 });
 
+// Custom user icon
 const userIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iMjUiIHZpZXdCb3g9IjAgMCAyNSAyNSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIuNSIgY3k9IjEyLjUiIHI9IjEyLjUiIGZpbGw9IiMyNTYzRUIiLz4KPGNpcmNsZSBjeD0iMTIuNSIgY3k9IjEwIiByPSI0IiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNSAyMEM1IDE2IDggMTQgMTIuNSAxNEMxNyAxNCAyMCAxNiAyMCAyMCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K',
   iconSize: [25, 25],
   iconAnchor: [12, 12],
 });
 
 const UserMap = () => {
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  
   const [busLocations] = useState([
     { 
       id: 1, 
@@ -63,13 +72,17 @@ const UserMap = () => {
       capacity: 40
     }
   ]);
+  
   const [requestedBus, setRequestedBus] = useState<number | null>(null);
-  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     console.log('UserMap component mounted');
     
-    // Get user location - RMU coordinates
+    // Set default location first
+    const defaultLocation = { lat: 16.4322, lng: 103.3656 };
+    setUserLocation(defaultLocation);
+    
+    // Try to get user's actual location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -78,21 +91,29 @@ const UserMap = () => {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
-          setMapReady(true);
+          setLocationError(null);
         },
         (error) => {
           console.error('Error getting location:', error);
-          // Default to RMU location
-          setUserLocation({ lat: 16.4322, lng: 103.3656 });
-          setMapReady(true);
+          setLocationError('ไม่สามารถเข้าถึงตำแหน่งได้ กำลังใช้ตำแหน่งมหาวิทยาลัย');
+          // Keep default location
+        },
+        {
+          timeout: 10000,
+          maximumAge: 300000
         }
       );
     } else {
-      console.log('Geolocation not supported, using default location');
-      // Default to RMU location
-      setUserLocation({ lat: 16.4322, lng: 103.3656 });
-      setMapReady(true);
+      console.log('Geolocation not supported');
+      setLocationError('เบราว์เซอร์ไม่รองรับการระบุตำแหน่ง');
     }
+    
+    // Set map ready after a short delay to ensure everything is loaded
+    const timer = setTimeout(() => {
+      setMapReady(true);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const handleRequestBus = (busId: number) => {
@@ -136,18 +157,22 @@ const UserMap = () => {
     return 'text-red-600';
   };
 
-  console.log('Rendering UserMap, mapReady:', mapReady, 'userLocation:', userLocation);
-
+  // Show loading screen
   if (!mapReady || !userLocation) {
     return (
       <div className="h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">กำลังโหลดแผนที่...</p>
+        <div className="text-center p-6">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 mb-2">กำลังโหลดแผนที่...</p>
+          {locationError && (
+            <p className="text-yellow-600 text-sm">{locationError}</p>
+          )}
         </div>
       </div>
     );
   }
+
+  console.log('Rendering map with location:', userLocation);
 
   return (
     <div className="h-screen flex flex-col bg-white">
@@ -201,7 +226,7 @@ const UserMap = () => {
         </div>
       </div>
 
-      {/* Map */}
+      {/* Map Container */}
       <div className="flex-1 relative">
         <MapContainer
           center={[userLocation.lat, userLocation.lng]}
@@ -215,15 +240,17 @@ const UserMap = () => {
           />
           
           {/* User location marker */}
-          <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
-            <Popup>
-              <div className="text-center">
-                <strong>ตำแหน่งของคุณ</strong>
-                <br />
-                <small>มหาวิทยาลัยราชภัฏมหาสารคาม</small>
-              </div>
-            </Popup>
-          </Marker>
+          {userLocation && (
+            <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
+              <Popup>
+                <div className="text-center">
+                  <strong>ตำแหน่งของคุณ</strong>
+                  <br />
+                  <small>มหาวิทยาลัยราชภัฏมหาสารคาม</small>
+                </div>
+              </Popup>
+            </Marker>
+          )}
 
           {/* Bus markers */}
           {busLocations.map((bus) => (
@@ -271,7 +298,7 @@ const UserMap = () => {
           ))}
         </MapContainer>
 
-        {/* Quick Bus Info Card - Floating at bottom */}
+        {/* Quick Bus Info Card */}
         <div className="absolute bottom-4 left-4 right-4 z-10">
           <div className="bg-white rounded-lg shadow-lg border max-h-40 overflow-y-auto">
             <div className="p-3">
