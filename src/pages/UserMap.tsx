@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bell, Menu, MapPin, Clock, Navigation, User, Star, Settings } from "lucide-react";
 import { toast } from "sonner";
 import L from 'leaflet';
@@ -32,7 +31,7 @@ const userIcon = new L.Icon({
 
 const UserMap = () => {
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [busLocations, setBusLocations] = useState([
+  const [busLocations] = useState([
     { 
       id: 1, 
       name: 'สาย A - อาคารเรียนรวม', 
@@ -65,27 +64,34 @@ const UserMap = () => {
     }
   ]);
   const [requestedBus, setRequestedBus] = useState<number | null>(null);
-  const [selectedBus, setSelectedBus] = useState<any>(null);
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
+    console.log('UserMap component mounted');
+    
     // Get user location - RMU coordinates
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          console.log('Got user location:', position.coords);
           setUserLocation({
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
+          setMapReady(true);
         },
         (error) => {
           console.error('Error getting location:', error);
           // Default to RMU location
           setUserLocation({ lat: 16.4322, lng: 103.3656 });
+          setMapReady(true);
         }
       );
     } else {
+      console.log('Geolocation not supported, using default location');
       // Default to RMU location
       setUserLocation({ lat: 16.4322, lng: 103.3656 });
+      setMapReady(true);
     }
   }, []);
 
@@ -129,6 +135,19 @@ const UserMap = () => {
     if (percentage < 80) return 'text-yellow-600';
     return 'text-red-600';
   };
+
+  console.log('Rendering UserMap, mapReady:', mapReady, 'userLocation:', userLocation);
+
+  if (!mapReady || !userLocation) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">กำลังโหลดแผนที่...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-white">
@@ -184,78 +203,73 @@ const UserMap = () => {
 
       {/* Map */}
       <div className="flex-1 relative">
-        {userLocation && (
-          <MapContainer
-            center={[userLocation.lat, userLocation.lng]}
-            zoom={15}
-            style={{ height: '100%', width: '100%' }}
-            className="z-0"
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            
-            {/* User location marker */}
-            <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
+        <MapContainer
+          center={[userLocation.lat, userLocation.lng]}
+          zoom={15}
+          style={{ height: '100%', width: '100%' }}
+          className="z-0"
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          
+          {/* User location marker */}
+          <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
+            <Popup>
+              <div className="text-center">
+                <strong>ตำแหน่งของคุณ</strong>
+                <br />
+                <small>มหาวิทยาลัยราชภัฏมหาสารคาม</small>
+              </div>
+            </Popup>
+          </Marker>
+
+          {/* Bus markers */}
+          {busLocations.map((bus) => (
+            <Marker 
+              key={bus.id} 
+              position={[bus.lat, bus.lng]} 
+              icon={busIcon}
+            >
               <Popup>
-                <div className="text-center">
-                  <strong>ตำแหน่งของคุณ</strong>
-                  <br />
-                  <small>มหาวิทยาลัยราชภัฏมหาสารคาม</small>
+                <div className="min-w-[200px]">
+                  <h3 className="font-bold text-sm">{bus.name}</h3>
+                  <div className="mt-2 space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span>สถานะ:</span>
+                      <span className={`px-2 py-1 rounded text-xs ${getStatusColor(bus.status)}`}>
+                        {bus.status}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>ETA:</span>
+                      <span className="font-medium">{bus.eta}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>ผู้โดยสาร:</span>
+                      <span className={getOccupancyColor(bus.passengers, bus.capacity)}>
+                        {bus.passengers}/{bus.capacity}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>ระยะห่าง:</span>
+                      <span>{calculateDistance(bus)}</span>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    className="w-full mt-2"
+                    onClick={() => handleRequestBus(bus.id)}
+                    disabled={requestedBus === bus.id}
+                  >
+                    {requestedBus === bus.id ? "กำลังรอรถ..." : "ขึ้นรถ"}
+                  </Button>
                 </div>
               </Popup>
             </Marker>
-
-            {/* Bus markers */}
-            {busLocations.map((bus) => (
-              <Marker 
-                key={bus.id} 
-                position={[bus.lat, bus.lng]} 
-                icon={busIcon}
-                eventHandlers={{
-                  click: () => setSelectedBus(bus)
-                }}
-              >
-                <Popup>
-                  <div className="min-w-[200px]">
-                    <h3 className="font-bold text-sm">{bus.name}</h3>
-                    <div className="mt-2 space-y-1 text-xs">
-                      <div className="flex justify-between">
-                        <span>สถานะ:</span>
-                        <span className={`px-2 py-1 rounded text-xs ${getStatusColor(bus.status)}`}>
-                          {bus.status}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>ETA:</span>
-                        <span className="font-medium">{bus.eta}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>ผู้โดยสาร:</span>
-                        <span className={getOccupancyColor(bus.passengers, bus.capacity)}>
-                          {bus.passengers}/{bus.capacity}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>ระยะห่าง:</span>
-                        <span>{calculateDistance(bus)}</span>
-                      </div>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      className="w-full mt-2"
-                      onClick={() => handleRequestBus(bus.id)}
-                      disabled={requestedBus === bus.id}
-                    >
-                      {requestedBus === bus.id ? "กำลังรอรถ..." : "ขึ้นรถ"}
-                    </Button>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        )}
+          ))}
+        </MapContainer>
 
         {/* Quick Bus Info Card - Floating at bottom */}
         <div className="absolute bottom-4 left-4 right-4 z-10">
