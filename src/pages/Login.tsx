@@ -3,13 +3,15 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Bus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
+  const navigate = useNavigate();
+
   const handleGoogleLogin = () => {
-    // TODO: Implement Google OAuth when Supabase is connected
     console.log('Google login clicked');
-    // For now, redirect to map page for demo
-    window.location.href = '/map';
+    // For demo purposes, redirect to map page
+    navigate('/map');
   };
 
   return (
