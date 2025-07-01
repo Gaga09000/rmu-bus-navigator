@@ -1,0 +1,29 @@
+
+{
+  "name": "RMU Bus Navigator",
+  "short_name": "RMU Bus",
+  "description": "ระบบติดตามรถบัสมหาวิทยาลัยราชภัฏมหาสารคาม",
+  "theme_color": "#3b82f6", 
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/placeholder.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/placeholder.svg", 
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ]
+}
