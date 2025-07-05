@@ -31,8 +31,8 @@ const UserMap = () => {
     { 
       id: 1, 
       name: 'สาย A - อาคารเรียนรวม', 
-      lat: 16.4322, 
-      lng: 103.3656, 
+      lat: 16.4325, 
+      lng: 103.3660, 
       status: 'กำลังวิ่ง', 
       eta: '5 นาที',
       passengers: 15,
@@ -41,8 +41,8 @@ const UserMap = () => {
     { 
       id: 2, 
       name: 'สาย B - หอพัก', 
-      lat: 16.4302, 
-      lng: 103.3676, 
+      lat: 16.4310, 
+      lng: 103.3670, 
       status: 'รอผู้โดยสาร', 
       eta: '12 นาที',
       passengers: 8,
@@ -51,8 +51,8 @@ const UserMap = () => {
     { 
       id: 3, 
       name: 'สาย C - คณะวิทยาศาสตร์', 
-      lat: 16.4342, 
-      lng: 103.3636, 
+      lat: 16.4340, 
+      lng: 103.3640, 
       status: 'กำลังวิ่ง', 
       eta: '8 นาที',
       passengers: 22,
@@ -65,65 +65,50 @@ const UserMap = () => {
   useEffect(() => {
     console.log('UserMap component mounted');
     
-    // Try to get user's actual location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log('Got user location:', position.coords);
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-          setLocationError(null);
-          setIsLoading(false);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          setLocationError('ไม่สามารถเข้าถึงตำแหน่งได้ กำลังใช้ตำแหน่งมหาวิทยาลัย');
-          setIsLoading(false);
-        },
-        {
-          timeout: 10000,
-          maximumAge: 300000
-        }
-      );
-    } else {
-      console.log('Geolocation not supported');
-      setLocationError('เบราว์เซอร์ไม่รองรับการระบุตำแหน่ง');
-      setIsLoading(false);
-    }
+    // Set location to RMU campus coordinates
+    setUserLocation({
+      lat: 16.4322,
+      lng: 103.3656
+    });
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
     if (!isLoading && mapRef.current && !mapInstanceRef.current) {
-      console.log('Initializing map with location:', userLocation);
+      console.log('Initializing map with RMU location:', userLocation);
       
       try {
-        // Initialize the map
-        const map = L.map(mapRef.current).setView([userLocation.lat, userLocation.lng], 15);
+        // Initialize the map with RMU coordinates
+        const map = L.map(mapRef.current).setView([userLocation.lat, userLocation.lng], 16);
         
         // Add tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Create custom icons using HTML
-        const createIcon = (content: string, color: string) => {
-          return L.divIcon({
-            html: `<div style="background-color: ${color}; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-size: 16px;">${content}</div>`,
-            className: 'custom-marker',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15],
-          });
-        };
+        // Create custom user icon
+        const userIcon = L.divIcon({
+          html: `<div style="background-color: #2563EB; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-size: 12px;">👤</div>`,
+          className: 'custom-user-marker',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        });
 
-        // Add user marker
+        // Create custom bus icon
+        const busIcon = L.divIcon({
+          html: `<div style="background-color: #FF6500; color: white; border-radius: 8px; width: 30px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4); font-size: 12px;">🚌</div>`,
+          className: 'custom-bus-marker',
+          iconSize: [30, 20],
+          iconAnchor: [15, 10],
+        });
+
+        // Add user marker at RMU
         const userMarker = L.marker([userLocation.lat, userLocation.lng], {
-          icon: createIcon('👤', '#2563EB')
+          icon: userIcon
         }).addTo(map);
         
         userMarker.bindPopup(`
-          <div style="text-align: center;">
+          <div style="text-align: center; padding: 5px;">
             <strong>ตำแหน่งของคุณ</strong><br>
             <small>มหาวิทยาลัยราชภัฏมหาสารคาม</small>
           </div>
@@ -132,26 +117,30 @@ const UserMap = () => {
         // Add bus markers
         busLocations.forEach((bus) => {
           const busMarker = L.marker([bus.lat, bus.lng], {
-            icon: createIcon('🚌', '#FF6500')
+            icon: busIcon
           }).addTo(map);
           
+          const statusColor = bus.status === 'กำลังวิ่ง' ? '#22c55e' : '#eab308';
+          const passengerColor = bus.passengers / bus.capacity < 0.5 ? '#22c55e' : 
+                                bus.passengers / bus.capacity < 0.8 ? '#f59e0b' : '#ef4444';
+          
           busMarker.bindPopup(`
-            <div style="min-width: 200px;">
-              <h3 style="font-weight: bold; margin-bottom: 8px;">${bus.name}</h3>
-              <div style="margin-top: 8px; font-size: 12px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <div style="min-width: 200px; padding: 8px;">
+              <h3 style="font-weight: bold; margin-bottom: 8px; color: #1f2937;">${bus.name}</h3>
+              <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
                   <span>สถานะ:</span>
-                  <span style="background-color: ${bus.status === 'กำลังวิ่ง' ? '#dcfce7' : '#fef3c7'}; color: ${bus.status === 'กำลังวิ่ง' ? '#166534' : '#92400e'}; padding: 2px 8px; border-radius: 4px; font-size: 10px;">
+                  <span style="background-color: ${statusColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">
                     ${bus.status}
                   </span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                  <span>ETA:</span>
-                  <span style="font-weight: 500;">${bus.eta}</span>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>เวลาถึง:</span>
+                  <span style="font-weight: 600; color: #1f2937;">${bus.eta}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
                   <span>ผู้โดยสาร:</span>
-                  <span style="color: ${bus.passengers / bus.capacity < 0.5 ? '#059669' : bus.passengers / bus.capacity < 0.8 ? '#d97706' : '#dc2626'};">
+                  <span style="color: ${passengerColor}; font-weight: 600;">
                     ${bus.passengers}/${bus.capacity}
                   </span>
                 </div>
@@ -161,7 +150,7 @@ const UserMap = () => {
         });
 
         mapInstanceRef.current = map;
-        console.log('Map initialized successfully');
+        console.log('Map initialized successfully with RMU location');
 
       } catch (error) {
         console.error('Error initializing map:', error);
