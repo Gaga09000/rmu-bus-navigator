@@ -30,12 +30,23 @@ const userIcon = new L.Icon({
   iconAnchor: [12, 12],
 });
 
+interface BusLocation {
+  id: number;
+  name: string;
+  lat: number;
+  lng: number;
+  status: string;
+  eta: string;
+  passengers: number;
+  capacity: number;
+}
+
 const UserMap = () => {
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [mapReady, setMapReady] = useState(false);
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number}>({ lat: 16.4322, lng: 103.3656 });
+  const [isLoading, setIsLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
   
-  const [busLocations] = useState([
+  const [busLocations] = useState<BusLocation[]>([
     { 
       id: 1, 
       name: 'สาย A - อาคารเรียนรวม', 
@@ -73,10 +84,6 @@ const UserMap = () => {
   useEffect(() => {
     console.log('UserMap component mounted');
     
-    // Set default location first
-    const defaultLocation = { lat: 16.4322, lng: 103.3656 };
-    setUserLocation(defaultLocation);
-    
     // Try to get user's actual location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -87,11 +94,13 @@ const UserMap = () => {
             lng: position.coords.longitude
           });
           setLocationError(null);
+          setIsLoading(false);
         },
         (error) => {
           console.error('Error getting location:', error);
           setLocationError('ไม่สามารถเข้าถึงตำแหน่งได้ กำลังใช้ตำแหน่งมหาวิทยาลัย');
           // Keep default location
+          setIsLoading(false);
         },
         {
           timeout: 10000,
@@ -101,14 +110,8 @@ const UserMap = () => {
     } else {
       console.log('Geolocation not supported');
       setLocationError('เบราว์เซอร์ไม่รองรับการระบุตำแหน่ง');
+      setIsLoading(false);
     }
-    
-    // Set map ready after a short delay to ensure everything is loaded
-    const timer = setTimeout(() => {
-      setMapReady(true);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
   }, []);
 
   const handleRequestBus = (busId: number) => {
@@ -122,7 +125,7 @@ const UserMap = () => {
     }, 3000);
   };
 
-  const calculateDistance = (bus: any) => {
+  const calculateDistance = (bus: BusLocation) => {
     if (!userLocation) return 'กำลังคำนวณ...';
     
     const R = 6371;
@@ -153,7 +156,7 @@ const UserMap = () => {
   };
 
   // Show loading screen
-  if (!mapReady || !userLocation) {
+  if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-white">
         <div className="text-center p-6">
@@ -234,20 +237,16 @@ const UserMap = () => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           
-          {/* User location marker */}
-          {userLocation && (
-            <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
-              <Popup>
-                <div className="text-center">
-                  <strong>ตำแหน่งของคุณ</strong>
-                  <br />
-                  <small>มหาวิทยาลัยราชภัฏมหาสารคาม</small>
-                </div>
-              </Popup>
-            </Marker>
-          )}
+          <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
+            <Popup>
+              <div className="text-center">
+                <strong>ตำแหน่งของคุณ</strong>
+                <br />
+                <small>มหาวิทยาลัยราชภัฏมหาสารคาม</small>
+              </div>
+            </Popup>
+          </Marker>
 
-          {/* Bus markers */}
           {busLocations.map((bus) => (
             <Marker 
               key={bus.id} 
