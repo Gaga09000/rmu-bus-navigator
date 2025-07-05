@@ -9,12 +9,7 @@ import L from 'leaflet';
 // Import Leaflet CSS
 import 'leaflet/dist/leaflet.css';
 
-// Fix for default markers in react-leaflet - remove any existing icon URLs first
-if (L.Icon.Default.prototype._getIconUrl) {
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-}
-
-// Set up default marker icons
+// Fix for default markers in react-leaflet
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEMxOS40MDM2IDAgMjUgNS41OTY0NCAyNSAxMi41QzI1IDE5LjQwMzYgMTkuNDAzNiAyNSAxMi41IDI1QzUuNTk2NDQgMjUgMCAxOS40MDM2IDAgMTIuNUMwIDUuNTk2NDQgNS41OTY0NCAwIDEyLjUgMFoiIGZpbGw9IiMzMzc0RkYiLz4KPHBhdGggZD0iTTEyLjUgNDBMMTkuNjQyMSAyNi4yNUg1LjM1Nzg3TDEyLjUgNDBaIiBmaWxsPSIjMzM3NEZGII8+Cjwvc3ZnPgo=',
   iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEMxOS40MDM2IDAgMjUgNS41OTY0NCAyNSAxMi41QzI1IDE5LjQwMzYgMTkuNDAzNiAyNSAxMi41IDI1QzUuNTk2NDQgMjUgMCAxOS40MDM2IDAgMTIuNUMwIDUuNTk2NDQgNS41OTY0NCAwIDEyLjUgMFoiIGZpbGw9IiMzMzc0RkYiLz4KPHBhdGggZD0iTTEyLjUgNDBMMTkuNjQyMSAyNi4yNUg1LjM1Nzg3TDEyLjUgNDBaIiBmaWxsPSIjMzM3NEZGII8+Cjwvc3ZnPgo=',
