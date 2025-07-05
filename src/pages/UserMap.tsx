@@ -265,8 +265,8 @@ const UserMap = () => {
           style={{ minHeight: '400px' }}
         />
 
-        {/* Quick Bus Info Card */}
-        <div className="absolute bottom-4 left-4 right-4 z-[1000]">
+        {/* Quick Bus Info Card - Fixed z-index */}
+        <div className="absolute bottom-4 left-4 right-4" style={{ zIndex: 2000 }}>
           <div className="bg-white rounded-lg shadow-lg border max-h-40 overflow-y-auto">
             <div className="p-3">
               <h3 className="font-semibold text-sm mb-2 flex items-center">
@@ -302,7 +302,7 @@ const UserMap = () => {
         </div>
 
         {locationError && (
-          <div className="absolute top-4 left-4 right-4 z-[1000]">
+          <div className="absolute top-4 left-4 right-4" style={{ zIndex: 2000 }}>
             <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
               <p className="text-sm">{locationError}</p>
             </div>
