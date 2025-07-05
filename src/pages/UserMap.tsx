@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Bell, Menu, MapPin, Clock, Navigation, User, Star, Settings } from "lucide-react";
@@ -8,19 +8,6 @@ import L from 'leaflet';
 
 // Import Leaflet CSS
 import 'leaflet/dist/leaflet.css';
-
-// Simple marker icons using emoji/text instead of complex SVG
-const createTextIcon = (text: string, color: string) => {
-  return L.divIcon({
-    html: `<div style="background-color: ${color}; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${text}</div>`,
-    className: 'custom-div-icon',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-  });
-};
-
-const busIcon = createTextIcon('🚌', '#FF6500');
-const userIcon = createTextIcon('👤', '#2563EB');
 
 interface BusLocation {
   id: number;
@@ -34,6 +21,8 @@ interface BusLocation {
 }
 
 const UserMap = () => {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number}>({ lat: 16.4322, lng: 103.3656 });
   const [isLoading, setIsLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -91,7 +80,6 @@ const UserMap = () => {
         (error) => {
           console.error('Error getting location:', error);
           setLocationError('ไม่สามารถเข้าถึงตำแหน่งได้ กำลังใช้ตำแหน่งมหาวิทยาลัย');
-          // Keep default location
           setIsLoading(false);
         },
         {
@@ -106,12 +94,94 @@ const UserMap = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (!isLoading && mapRef.current && !mapInstanceRef.current) {
+      console.log('Initializing map with location:', userLocation);
+      
+      try {
+        // Initialize the map
+        const map = L.map(mapRef.current).setView([userLocation.lat, userLocation.lng], 15);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Create custom icons using HTML
+        const createIcon = (content: string, color: string) => {
+          return L.divIcon({
+            html: `<div style="background-color: ${color}; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-size: 16px;">${content}</div>`,
+            className: 'custom-marker',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+          });
+        };
+
+        // Add user marker
+        const userMarker = L.marker([userLocation.lat, userLocation.lng], {
+          icon: createIcon('👤', '#2563EB')
+        }).addTo(map);
+        
+        userMarker.bindPopup(`
+          <div style="text-align: center;">
+            <strong>ตำแหน่งของคุณ</strong><br>
+            <small>มหาวิทยาลัยราชภัฏมหาสารคาม</small>
+          </div>
+        `);
+
+        // Add bus markers
+        busLocations.forEach((bus) => {
+          const busMarker = L.marker([bus.lat, bus.lng], {
+            icon: createIcon('🚌', '#FF6500')
+          }).addTo(map);
+          
+          busMarker.bindPopup(`
+            <div style="min-width: 200px;">
+              <h3 style="font-weight: bold; margin-bottom: 8px;">${bus.name}</h3>
+              <div style="margin-top: 8px; font-size: 12px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                  <span>สถานะ:</span>
+                  <span style="background-color: ${bus.status === 'กำลังวิ่ง' ? '#dcfce7' : '#fef3c7'}; color: ${bus.status === 'กำลังวิ่ง' ? '#166534' : '#92400e'}; padding: 2px 8px; border-radius: 4px; font-size: 10px;">
+                    ${bus.status}
+                  </span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                  <span>ETA:</span>
+                  <span style="font-weight: 500;">${bus.eta}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                  <span>ผู้โดยสาร:</span>
+                  <span style="color: ${bus.passengers / bus.capacity < 0.5 ? '#059669' : bus.passengers / bus.capacity < 0.8 ? '#d97706' : '#dc2626'};">
+                    ${bus.passengers}/${bus.capacity}
+                  </span>
+                </div>
+              </div>
+            </div>
+          `);
+        });
+
+        mapInstanceRef.current = map;
+        console.log('Map initialized successfully');
+
+      } catch (error) {
+        console.error('Error initializing map:', error);
+        setLocationError('เกิดข้อผิดพลาดในการโหลดแผนที่');
+      }
+    }
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [isLoading, userLocation, busLocations]);
+
   const handleRequestBus = (busId: number) => {
     setRequestedBus(busId);
     const bus = busLocations.find(b => b.id === busId);
     toast.success(`แจ้งขึ้นรถ${bus?.name}สำเร็จ! คนขับจะได้รับการแจ้งเตือน`);
     
-    // Simulate bus response after 3 seconds
     setTimeout(() => {
       toast.info(`รถ${bus?.name} กำลังมาหาคุณ - ETA: ${bus?.eta}`);
     }, 3000);
@@ -132,22 +202,6 @@ const UserMap = () => {
     return `${(distance * 1000).toFixed(0)} ม.`;
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'กำลังวิ่ง': return 'bg-green-100 text-green-800';
-      case 'รอผู้โดยสาร': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getOccupancyColor = (passengers: number, capacity: number) => {
-    const percentage = (passengers / capacity) * 100;
-    if (percentage < 50) return 'text-green-600';
-    if (percentage < 80) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  // Show loading screen
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-white">
@@ -161,8 +215,6 @@ const UserMap = () => {
       </div>
     );
   }
-
-  console.log('Rendering map with location:', userLocation);
 
   return (
     <div className="h-screen flex flex-col bg-white">
@@ -218,74 +270,14 @@ const UserMap = () => {
 
       {/* Map Container */}
       <div className="flex-1 relative">
-        <MapContainer
-          center={[userLocation.lat, userLocation.lng]}
-          zoom={15}
-          style={{ height: '100%', width: '100%' }}
-          className="z-0"
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          
-          <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
-            <Popup>
-              <div className="text-center">
-                <strong>ตำแหน่งของคุณ</strong>
-                <br />
-                <small>มหาวิทยาลัยราชภัฏมหาสารคาม</small>
-              </div>
-            </Popup>
-          </Marker>
-
-          {busLocations.map((bus) => (
-            <Marker 
-              key={bus.id} 
-              position={[bus.lat, bus.lng]} 
-              icon={busIcon}
-            >
-              <Popup>
-                <div className="min-w-[200px]">
-                  <h3 className="font-bold text-sm">{bus.name}</h3>
-                  <div className="mt-2 space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span>สถานะ:</span>
-                      <span className={`px-2 py-1 rounded text-xs ${getStatusColor(bus.status)}`}>
-                        {bus.status}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>ETA:</span>
-                      <span className="font-medium">{bus.eta}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>ผู้โดยสาร:</span>
-                      <span className={getOccupancyColor(bus.passengers, bus.capacity)}>
-                        {bus.passengers}/{bus.capacity}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>ระยะห่าง:</span>
-                      <span>{calculateDistance(bus)}</span>
-                    </div>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    className="w-full mt-2"
-                    onClick={() => handleRequestBus(bus.id)}
-                    disabled={requestedBus === bus.id}
-                  >
-                    {requestedBus === bus.id ? "กำลังรอรถ..." : "ขึ้นรถ"}
-                  </Button>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+        <div 
+          ref={mapRef} 
+          className="w-full h-full"
+          style={{ minHeight: '400px' }}
+        />
 
         {/* Quick Bus Info Card */}
-        <div className="absolute bottom-4 left-4 right-4 z-10">
+        <div className="absolute bottom-4 left-4 right-4 z-[1000]">
           <div className="bg-white rounded-lg shadow-lg border max-h-40 overflow-y-auto">
             <div className="p-3">
               <h3 className="font-semibold text-sm mb-2 flex items-center">
@@ -319,6 +311,14 @@ const UserMap = () => {
             </div>
           </div>
         </div>
+
+        {locationError && (
+          <div className="absolute top-4 left-4 right-4 z-[1000]">
+            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+              <p className="text-sm">{locationError}</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
