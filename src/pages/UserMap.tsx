@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Bell, Menu, MapPin, Clock, Navigation, User, Star, Settings } from "lucide-react";
+import { Bell, Menu, MapPin, Clock, Navigation, User, Star, Settings, Home, Bus, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import L from 'leaflet';
 
@@ -176,21 +176,6 @@ const UserMap = () => {
     }, 3000);
   };
 
-  const calculateDistance = (bus: BusLocation) => {
-    if (!userLocation) return 'กำลังคำนวณ...';
-    
-    const R = 6371;
-    const dLat = (bus.lat - userLocation.lat) * Math.PI / 180;
-    const dLng = (bus.lng - userLocation.lng) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(bus.lat * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const distance = R * c;
-    
-    return `${(distance * 1000).toFixed(0)} ม.`;
-  };
-
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-white">
@@ -210,50 +195,21 @@ const UserMap = () => {
       {/* Header */}
       <div className="bg-blue-600 text-white p-4 flex items-center justify-between shadow-lg">
         <div className="flex items-center space-x-3">
-          <h1 className="text-lg font-bold">RMU Bus</h1>
+          <h1 className="text-lg font-bold">แผนที่รถบัส RMU</h1>
           <span className="text-xs bg-blue-500 px-2 py-1 rounded-full">
-            มหาวิทยาลัยราชภัฏมหาสารคาม
+            ผู้ใช้งาน - user
           </span>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="sm" className="text-white hover:bg-blue-500">
+          <div className="relative">
             <Bell className="h-5 w-5" />
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              2
+            </span>
+          </div>
+          <Button variant="ghost" size="sm" className="text-white hover:bg-blue-500">
+            ออกจากระบบ
           </Button>
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="text-white hover:bg-blue-500">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>เมนู</SheetTitle>
-                <SheetDescription>จัดการบัญชีและการตั้งค่า</SheetDescription>
-              </SheetHeader>
-              <div className="mt-6 space-y-4">
-                <Button variant="outline" className="w-full justify-start">
-                  <User className="mr-2 h-4 w-4" />
-                  ข้อมูลส่วนตัว
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Star className="mr-2 h-4 w-4" />
-                  ประวัติการใช้งาน
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Settings className="mr-2 h-4 w-4" />
-                  การตั้งค่า
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Bell className="mr-2 h-4 w-4" />
-                  การแจ้งเตือน
-                </Button>
-                <hr />
-                <Button variant="outline" className="w-full justify-start text-red-600" onClick={() => window.location.href = '/'}>
-                  ออกจากระบบ
-                </Button>
-              </div>
-            </SheetContent>
-          </Sheet>
         </div>
       </div>
 
@@ -265,49 +221,68 @@ const UserMap = () => {
           style={{ minHeight: '400px' }}
         />
 
-        {/* Quick Bus Info Card - Fixed z-index */}
-        <div className="absolute bottom-4 left-4 right-4" style={{ zIndex: 2000 }}>
-          <div className="bg-white rounded-lg shadow-lg border max-h-40 overflow-y-auto">
-            <div className="p-3">
-              <h3 className="font-semibold text-sm mb-2 flex items-center">
-                <Navigation className="mr-2 h-4 w-4 text-blue-600" />
-                รถบัสที่ใกล้คุณ
-              </h3>
-              <div className="space-y-2">
-                {busLocations.slice(0, 2).map((bus) => (
-                  <div key={bus.id} className="flex items-center justify-between text-xs bg-gray-50 p-2 rounded">
-                    <div className="flex-1">
-                      <div className="font-medium">{bus.name}</div>
-                      <div className="flex items-center space-x-2 text-gray-600">
-                        <Clock className="h-3 w-3" />
-                        <span>{bus.eta}</span>
-                        <span>•</span>
-                        <span>{calculateDistance(bus)}</span>
-                      </div>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      variant={requestedBus === bus.id ? "secondary" : "default"}
-                      onClick={() => handleRequestBus(bus.id)}
-                      disabled={requestedBus === bus.id}
-                      className="ml-2 text-xs px-2 py-1 h-7"
-                    >
-                      {requestedBus === bus.id ? "รอ..." : "ขึ้น"}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {/* Floating Action Buttons */}
+        <div className="absolute right-4 top-4 flex flex-col space-y-2" style={{ zIndex: 2000 }}>
+          <Button 
+            size="icon" 
+            className="bg-green-500 hover:bg-green-600 text-white rounded-full h-12 w-12 shadow-lg"
+          >
+            <MapPin className="h-6 w-6" />
+          </Button>
+          <Button 
+            size="icon" 
+            className="bg-blue-500 hover:bg-blue-600 text-white rounded-full h-12 w-12 shadow-lg"
+          >
+            <Bus className="h-6 w-6" />
+          </Button>
+          <Button 
+            size="icon" 
+            className="bg-purple-500 hover:bg-purple-600 text-white rounded-full h-12 w-12 shadow-lg"
+          >
+            <Clock className="h-6 w-6" />
+          </Button>
+          <div className="relative">
+            <Button 
+              size="icon" 
+              className="bg-orange-500 hover:bg-orange-600 text-white rounded-full h-12 w-12 shadow-lg"
+            >
+              <Bell className="h-6 w-6" />
+            </Button>
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
+              2
+            </span>
           </div>
         </div>
 
         {locationError && (
-          <div className="absolute top-4 left-4 right-4" style={{ zIndex: 2000 }}>
+          <div className="absolute top-4 left-4 right-16" style={{ zIndex: 2000 }}>
             <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
               <p className="text-sm">{locationError}</p>
             </div>
           </div>
         )}
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="bg-white border-t border-gray-200 p-4">
+        <div className="flex justify-around items-center">
+          <div className="flex flex-col items-center space-y-1">
+            <Home className="h-6 w-6 text-blue-600" />
+            <span className="text-xs text-blue-600 font-medium">แผนที่</span>
+          </div>
+          <div className="flex flex-col items-center space-y-1">
+            <Bus className="h-6 w-6 text-gray-400" />
+            <span className="text-xs text-gray-400">ดูตารางรถ</span>
+          </div>
+          <div className="flex flex-col items-center space-y-1">
+            <MessageCircle className="h-6 w-6 text-gray-400" />
+            <span className="text-xs text-gray-400">การจราจร</span>
+          </div>
+          <div className="flex flex-col items-center space-y-1">
+            <User className="h-6 w-6 text-gray-400" />
+            <span className="text-xs text-gray-400">บัญชีผู้ใช้</span>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Users, MapPin, Bell, User } from "lucide-react";
+import { Users, MapPin, Bell, User, Home, Calendar, Settings, BarChart } from "lucide-react";
 
 const AdminDashboard = () => {
   const [buses] = useState([
@@ -22,96 +22,102 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-purple-600 text-white p-4">
+      <div className="bg-blue-600 text-white p-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold">แดshboard ผู้ดูแลระบบ</h1>
-            <p className="text-purple-100">ระบบจัดการรถบัส RMU</p>
+          <div className="flex items-center space-x-3">
+            <h1 className="text-lg font-bold">แผงควบคุมผู้ดูแลระบบ</h1>
+            <span className="text-xs bg-blue-500 px-2 py-1 rounded-full">
+              ผู้ดูแลระบบ - admin
+            </span>
           </div>
-          <Button variant="ghost" size="sm" className="text-white">
-            <User className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center space-x-2">
+            <div className="relative">
+              <Bell className="h-5 w-5" />
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                2
+              </span>
+            </div>
+            <Button variant="ghost" size="sm" className="text-white hover:bg-blue-500">
+              ออกจากระบบ
+            </Button>
+          </div>
         </div>
       </div>
 
       <div className="p-4">
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">ภาพรวม</TabsTrigger>
-            <TabsTrigger value="buses">จัดการรถบัส</TabsTrigger>
-            <TabsTrigger value="users">ผู้ใช้งาน</TabsTrigger>
-            <TabsTrigger value="reports">รายงาน</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 bg-white shadow-sm">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+              <BarChart className="mr-2 h-4 w-4" />
+              ภาพรวม
+            </TabsTrigger>
+            <TabsTrigger value="management" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+              <Calendar className="mr-2 h-4 w-4" />
+              จัดการรถ
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+              <Settings className="mr-2 h-4 w-4" />
+              ตั้งค่า
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
             {/* Overview Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-2xl">3</CardTitle>
-                  <CardDescription>รถบัสทั้งหมด</CardDescription>
-                </CardHeader>
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="bg-white shadow-sm">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-blue-600">0</div>
+                  <div className="text-sm text-gray-600">รถบัสที่ได้รับ</div>
+                </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-2xl">2</CardTitle>
-                  <CardDescription>รถที่กำลังให้บริการ</CardDescription>
-                </CardHeader>
+              <Card className="bg-white shadow-sm">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-blue-600">156</div>
+                  <div className="text-sm text-gray-600">ผู้ใช้งาน</div>
+                </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-2xl">23</CardTitle>
-                  <CardDescription>ผู้โดยสารรวม</CardDescription>
-                </CardHeader>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="bg-white shadow-sm">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-blue-600">0</div>
+                  <div className="text-sm text-gray-600">จุดหมาย-ลง</div>
+                </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-2xl">156</CardTitle>
-                  <CardDescription>ผู้ใช้ลงทะเบียน</CardDescription>
-                </CardHeader>
+              <Card className="bg-white shadow-sm">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-blue-600">0</div>
+                  <div className="text-sm text-gray-600">คนขับ</div>
+                </CardContent>
               </Card>
             </div>
 
             {/* Real-time Status */}
-            <Card>
+            <Card className="bg-white shadow-sm">
               <CardHeader>
-                <CardTitle>สถานะแบบเรียลไทม์</CardTitle>
+                <CardTitle className="text-lg">สถานะระบบปัจจุบัน</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {buses.map((bus) => (
-                    <div key={bus.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <MapPin className="h-5 w-5 text-gray-400" />
-                        <div>
-                          <p className="font-medium">{bus.name}</p>
-                          <p className="text-sm text-gray-600">คนขับ: {bus.driver}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge variant={bus.status === 'กำลังวิ่ง' ? 'default' : bus.status === 'รอผู้โดยสาร' ? 'secondary' : 'destructive'}>
-                          {bus.status}
-                        </Badge>
-                        <p className="text-sm text-gray-600 mt-1">ผู้โดยสาร: {bus.passengers} คน</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="text-center py-8 text-gray-500">
+                  <BarChart className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                  <p>ไม่มีข้อมูลระบบในขณะนี้</p>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="buses" className="space-y-4">
+          <TabsContent value="management" className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">จัดการรถบัส</h3>
-              <Button>เพิ่มรถบัสใหม่</Button>
+              <Button className="bg-blue-600 hover:bg-blue-700">เพิ่มรถบัสใหม่</Button>
             </div>
             <div className="grid gap-4">
               {buses.map((bus) => (
-                <Card key={bus.id}>
+                <Card key={bus.id} className="bg-white shadow-sm">
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle>{bus.name}</CardTitle>
+                      <CardTitle className="text-base">{bus.name}</CardTitle>
                       <Badge variant="outline">{bus.status}</Badge>
                     </div>
                     <CardDescription>คนขับ: {bus.driver}</CardDescription>
@@ -128,73 +134,50 @@ const AdminDashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="users" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">ผู้ใช้งานระบบ</h3>
-              <Button>เพิ่มผู้ใช้</Button>
-            </div>
-            <Card>
-              <CardContent className="p-0">
-                <div className="space-y-0">
-                  {users.map((user, index) => (
-                    <div key={user.id} className={`p-4 ${index !== users.length - 1 ? 'border-b' : ''}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <Users className="h-5 w-5 text-gray-400" />
-                          <div>
-                            <p className="font-medium">{user.name}</p>
-                            <p className="text-sm text-gray-600">{user.lastSeen}</p>
-                          </div>
-                        </div>
-                        <Badge variant={user.type === 'Driver' ? 'default' : 'secondary'}>
-                          {user.type}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+          <TabsContent value="settings" className="space-y-4">
+            <h3 className="text-lg font-semibold">การตั้งค่าระบบ</h3>
+            <Card className="bg-white shadow-sm">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span>การแจ้งเตือน</span>
+                    <Button variant="outline" size="sm">จัดการ</Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>ผู้ใช้งาน</span>
+                    <Button variant="outline" size="sm">จัดการ</Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>รายงาน</span>
+                    <Button variant="outline" size="sm">ดูรายงาน</Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
-
-          <TabsContent value="reports" className="space-y-4">
-            <h3 className="text-lg font-semibold">รายงานและสถิติ</h3>
-            <div className="grid gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>รายงานการใช้งานรายวัน</CardTitle>
-                  <CardDescription>สถิติการใช้งานในวันนี้</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <p className="text-gray-500">กราฟจะแสดงที่นี่</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>เส้นทางที่ได้รับความนิยม</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>สาย A (หอพัก - อาคารเรียน)</span>
-                      <span className="font-semibold">65%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>สาย B (ลานจอดรถ - ห้องสมุด)</span>
-                      <span className="font-semibold">25%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>สาย C (ประตูหลัก - โรงอาหาร)</span>
-                      <span className="font-semibold">10%</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
         </Tabs>
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+        <div className="flex justify-around items-center">
+          <div className="flex flex-col items-center space-y-1">
+            <BarChart className="h-6 w-6 text-blue-600" />
+            <span className="text-xs text-blue-600 font-medium">ภาพรวม</span>
+          </div>
+          <div className="flex flex-col items-center space-y-1">
+            <Calendar className="h-6 w-6 text-gray-400" />
+            <span className="text-xs text-gray-400">จัดการรถ</span>
+          </div>
+          <div className="flex flex-col items-center space-y-1">
+            <Settings className="h-6 w-6 text-gray-400" />
+            <span className="text-xs text-gray-400">ตั้งค่า</span>
+          </div>
+          <div className="flex flex-col items-center space-y-1">
+            <User className="h-6 w-6 text-gray-400" />
+            <span className="text-xs text-gray-400">โปรไฟล์</span>
+          </div>
+        </div>
       </div>
     </div>
   );
