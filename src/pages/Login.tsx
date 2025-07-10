@@ -3,10 +3,13 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Bus, Eye, EyeOff } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Bus, Eye, EyeOff, User, Car, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+type UserRole = 'user' | 'driver' | 'admin';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -16,6 +19,34 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<UserRole>('user');
+
+  const roles = [
+    { 
+      id: 'user' as UserRole, 
+      name: 'ผู้ใช้งาน', 
+      description: 'นักเรียน/นักศึกษา', 
+      icon: User,
+      route: '/map',
+      color: 'bg-blue-500'
+    },
+    { 
+      id: 'driver' as UserRole, 
+      name: 'คนขับรถ', 
+      description: 'พนักงานขับรถบัส', 
+      icon: Car,
+      route: '/driver',
+      color: 'bg-green-500'
+    },
+    { 
+      id: 'admin' as UserRole, 
+      name: 'ผู้ดูแลระบบ', 
+      description: 'เจ้าหน้าที่ IT', 
+      icon: Shield,
+      route: '/admin',
+      color: 'bg-red-500'
+    }
+  ];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +58,10 @@ const Login = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/map`
+            emailRedirectTo: `${window.location.origin}${roles.find(r => r.id === selectedRole)?.route}`,
+            data: {
+              role: selectedRole
+            }
           }
         });
 
@@ -56,7 +90,8 @@ const Login = () => {
             variant: "destructive"
           });
         } else {
-          navigate('/map');
+          const selectedRoleRoute = roles.find(r => r.id === selectedRole)?.route || '/map';
+          navigate(selectedRoleRoute);
         }
       }
     } catch (error) {
@@ -71,8 +106,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 px-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 px-4 py-6">
+      <div className="w-full max-w-md">
         <Card className="shadow-xl border-0 bg-white/90 backdrop-blur">
           <CardHeader className="text-center pb-6">
             <div className="mx-auto mb-6 p-4 bg-blue-600 rounded-full w-fit shadow-lg">
@@ -88,7 +123,42 @@ const Login = () => {
               มหาวิทยาลัยราชภัฏมหาสารคาม
             </CardDescription>
           </CardHeader>
+          
           <CardContent className="space-y-6 pb-8">
+            {/* Role Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                เลือกประเภทผู้ใช้งาน
+              </label>
+              <div className="grid grid-cols-1 gap-2">
+                {roles.map((role) => {
+                  const IconComponent = role.icon;
+                  return (
+                    <button
+                      key={role.id}
+                      type="button"
+                      onClick={() => setSelectedRole(role.id)}
+                      className={`p-3 rounded-lg border-2 transition-all duration-200 ${
+                        selectedRole === role.id 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className={`p-2 rounded-full ${role.color} text-white`}>
+                          <IconComponent className="h-4 w-4" />
+                        </div>
+                        <div className="text-left flex-1">
+                          <div className="font-medium text-gray-800">{role.name}</div>
+                          <div className="text-xs text-gray-500">{role.description}</div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -170,7 +240,7 @@ const Login = () => {
         </Card>
         
         <div className="mt-6 text-center text-xs text-gray-500">
-          <p>มหาวิทยาลัยราชภัฏมหาสารคาม</p>
+          <p>มหาวิทยาลัยราชภัฏมหาสารคาম</p>
           <p>Rajabhat Maha Sarakham University</p>
         </div>
       </div>

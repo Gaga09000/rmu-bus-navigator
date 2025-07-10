@@ -2,8 +2,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Bell, Menu, MapPin, Clock, Navigation, User, Star, Settings, Home, Bus, MessageCircle } from "lucide-react";
+import { Bell, Menu, MapPin, Clock, Navigation, User, Star, Settings, Home, Bus, MessageCircle, Phone, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import L from 'leaflet';
 
 // Import Leaflet CSS
@@ -21,11 +23,13 @@ interface BusLocation {
 }
 
 const UserMap = () => {
+  const navigate = useNavigate();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number}>({ lat: 16.4322, lng: 103.3656 });
   const [isLoading, setIsLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [showBusRequest, setShowBusRequest] = useState(false);
   
   const [busLocations] = useState<BusLocation[]>([
     { 
@@ -61,6 +65,42 @@ const UserMap = () => {
   ]);
   
   const [requestedBus, setRequestedBus] = useState<number | null>(null);
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("เกิดข้อผิดพลาดในการออกจากระบบ");
+    } else {
+      navigate('/');
+    }
+  };
+
+  const handleRequestBus = (busId: number) => {
+    setRequestedBus(busId);
+    const bus = busLocations.find(b => b.id === busId);
+    toast.success(`แจ้งขึ้นรถ${bus?.name}สำเร็จ! คนขับจะได้รับการแจ้งเตือน`);
+    
+    setTimeout(() => {
+      toast.info(`รถ${bus?.name} กำลังมาหาคุณ - ETA: ${bus?.eta}`);
+    }, 3000);
+  };
+
+  const handleCenterMap = () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView([userLocation.lat, userLocation.lng], 16);
+      toast.success("กลับไปที่ตำแหน่งของคุณ");
+    }
+  };
+
+  const handleShowSchedule = () => {
+    setShowBusRequest(true);
+  };
+
+  const handleEmergency = () => {
+    toast.error("กำลังติดต่อหน่วยงานที่เกี่ยวข้อง...", {
+      duration: 5000,
+    });
+  };
 
   useEffect(() => {
     console.log('UserMap component mounted');
@@ -114,7 +154,7 @@ const UserMap = () => {
           </div>
         `);
 
-        // Add bus markers
+        // Add bus markers with click to request functionality
         busLocations.forEach((bus) => {
           const busMarker = L.marker([bus.lat, bus.lng], {
             icon: busIcon
@@ -144,10 +184,16 @@ const UserMap = () => {
                     ${bus.passengers}/${bus.capacity}
                   </span>
                 </div>
+                <button onclick="window.requestBus(${bus.id})" style="background-color: #3b82f6; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; width: 100%; margin-top: 8px;">
+                  แจ้งขึ้นรถ
+                </button>
               </div>
             </div>
           `);
         });
+
+        // Add global function for bus request
+        (window as any).requestBus = handleRequestBus;
 
         mapInstanceRef.current = map;
         console.log('Map initialized successfully with RMU location');
@@ -166,16 +212,6 @@ const UserMap = () => {
     };
   }, [isLoading, userLocation, busLocations]);
 
-  const handleRequestBus = (busId: number) => {
-    setRequestedBus(busId);
-    const bus = busLocations.find(b => b.id === busId);
-    toast.success(`แจ้งขึ้นรถ${bus?.name}สำเร็จ! คนขับจะได้รับการแจ้งเตือน`);
-    
-    setTimeout(() => {
-      toast.info(`รถ${bus?.name} กำลังมาหาคุณ - ETA: ${bus?.eta}`);
-    }, 3000);
-  };
-
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-white">
@@ -193,7 +229,7 @@ const UserMap = () => {
   return (
     <div className="h-screen flex flex-col bg-white">
       {/* Header */}
-      <div className="bg-blue-600 text-white p-4 flex items-center justify-between shadow-lg">
+      <div className="bg-blue-600 text-white p-4 flex items-center justify-between shadow-lg relative z-50">
         <div className="flex items-center space-x-3">
           <h1 className="text-lg font-bold">แผนที่รถบัส RMU</h1>
           <span className="text-xs bg-blue-500 px-2 py-1 rounded-full">
@@ -207,7 +243,7 @@ const UserMap = () => {
               2
             </span>
           </div>
-          <Button variant="ghost" size="sm" className="text-white hover:bg-blue-500">
+          <Button variant="ghost" size="sm" className="text-white hover:bg-blue-500" onClick={handleLogout}>
             ออกจากระบบ
           </Button>
         </div>
@@ -226,18 +262,24 @@ const UserMap = () => {
           <Button 
             size="icon" 
             className="bg-green-500 hover:bg-green-600 text-white rounded-full h-12 w-12 shadow-lg"
+            onClick={handleCenterMap}
+            title="กลับไปที่ตำแหน่งของคุณ"
           >
             <MapPin className="h-6 w-6" />
           </Button>
           <Button 
             size="icon" 
             className="bg-blue-500 hover:bg-blue-600 text-white rounded-full h-12 w-12 shadow-lg"
+            onClick={handleShowSchedule}
+            title="ดูตารางรถ"
           >
             <Bus className="h-6 w-6" />
           </Button>
           <Button 
             size="icon" 
             className="bg-purple-500 hover:bg-purple-600 text-white rounded-full h-12 w-12 shadow-lg"
+            onClick={() => toast.info("แสดงเวลาทำงาน: 06:00 - 18:00")}
+            title="เวลาทำงาน"
           >
             <Clock className="h-6 w-6" />
           </Button>
@@ -245,6 +287,8 @@ const UserMap = () => {
             <Button 
               size="icon" 
               className="bg-orange-500 hover:bg-orange-600 text-white rounded-full h-12 w-12 shadow-lg"
+              onClick={() => toast.info("การแจ้งเตือน: รถสาย A กำลังมาถึง")}
+              title="การแจ้งเตือน"
             >
               <Bell className="h-6 w-6" />
             </Button>
@@ -252,6 +296,14 @@ const UserMap = () => {
               2
             </span>
           </div>
+          <Button 
+            size="icon" 
+            className="bg-red-500 hover:bg-red-600 text-white rounded-full h-12 w-12 shadow-lg"
+            onClick={handleEmergency}
+            title="ฉุกเฉิน"
+          >
+            <AlertCircle className="h-6 w-6" />
+          </Button>
         </div>
 
         {locationError && (
@@ -263,25 +315,76 @@ const UserMap = () => {
         )}
       </div>
 
+      {/* Bus Request Sheet */}
+      <Sheet open={showBusRequest} onOpenChange={setShowBusRequest}>
+        <SheetContent side="bottom" className="h-[80vh]">
+          <SheetHeader>
+            <SheetTitle>แจ้งขึ้นรถบัส</SheetTitle>
+            <SheetDescription>
+              เลือกรถบัสที่ต้องการขึ้น
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-6 space-y-4">
+            {busLocations.map((bus) => (
+              <div key={bus.id} className="p-4 border rounded-lg bg-white shadow-sm">
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="font-semibold text-gray-800">{bus.name}</h3>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    bus.status === 'กำลังวิ่ง' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {bus.status}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm text-gray-600 mb-3">
+                  <span>เวลาถึง: <strong>{bus.eta}</strong></span>
+                  <span>ผู้โดยสาร: <strong>{bus.passengers}/{bus.capacity}</strong></span>
+                </div>
+                <Button 
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  onClick={() => {
+                    handleRequestBus(bus.id);
+                    setShowBusRequest(false);
+                  }}
+                  disabled={requestedBus === bus.id}
+                >
+                  {requestedBus === bus.id ? 'แจ้งแล้ว' : 'แจ้งขึ้นรถ'}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* Bottom Navigation */}
-      <div className="bg-white border-t border-gray-200 p-4">
+      <div className="bg-white border-t border-gray-200 p-4 relative z-50">
         <div className="flex justify-around items-center">
           <div className="flex flex-col items-center space-y-1">
             <Home className="h-6 w-6 text-blue-600" />
             <span className="text-xs text-blue-600 font-medium">แผนที่</span>
           </div>
-          <div className="flex flex-col items-center space-y-1">
+          <button 
+            className="flex flex-col items-center space-y-1"
+            onClick={handleShowSchedule}
+          >
             <Bus className="h-6 w-6 text-gray-400" />
             <span className="text-xs text-gray-400">ดูตารางรถ</span>
-          </div>
-          <div className="flex flex-col items-center space-y-1">
+          </button>
+          <button 
+            className="flex flex-col items-center space-y-1"
+            onClick={() => toast.info("ติดต่อเจ้าหน้าที่: 043-754321")}
+          >
             <MessageCircle className="h-6 w-6 text-gray-400" />
-            <span className="text-xs text-gray-400">การจราจร</span>
-          </div>
-          <div className="flex flex-col items-center space-y-1">
+            <span className="text-xs text-gray-400">ติดต่อ</span>
+          </button>
+          <button 
+            className="flex flex-col items-center space-y-1"
+            onClick={() => toast.info("ข้อมูลผู้ใช้งาน")}
+          >
             <User className="h-6 w-6 text-gray-400" />
             <span className="text-xs text-gray-400">บัญชีผู้ใช้</span>
-          </div>
+          </button>
         </div>
       </div>
     </div>
