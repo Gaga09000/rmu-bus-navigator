@@ -228,37 +228,50 @@ const UserMap = () => {
 
   return (
     <div className="h-screen flex flex-col bg-white">
-      {/* Header */}
-      <div className="bg-blue-600 text-white p-4 flex items-center justify-between shadow-lg relative z-50">
-        <div className="flex items-center space-x-3">
-          <h1 className="text-lg font-bold">แผนที่รถบัส RMU</h1>
-          <span className="text-xs bg-blue-500 px-2 py-1 rounded-full">
-            ผู้ใช้งาน - user
-          </span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-              2
-            </span>
+      {/* Enhanced Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 shadow-lg relative z-50">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="bg-white/20 p-2 rounded-lg">
+              <MapPin className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold">แผนที่รถบัส RMU</h1>
+              <p className="text-xs text-blue-100">ระบบติดตามรถบัสมหาวิทยาลัย</p>
+            </div>
           </div>
-          <Button variant="ghost" size="sm" className="text-white hover:bg-blue-500" onClick={handleLogout}>
-            ออกจากระบบ
-          </Button>
+          <div className="flex items-center space-x-3">
+            <div className="relative bg-white/20 p-2 rounded-lg">
+              <Bell className="h-5 w-5" />
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                2
+              </span>
+            </div>
+            <div className="bg-white/20 px-3 py-1 rounded-full text-xs">
+              ผู้ใช้งาน
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-white hover:bg-white/20 px-3 py-1.5" 
+              onClick={handleLogout}
+            >
+              ออกจากระบบ
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Map Container */}
-      <div className="flex-1 relative">
+      {/* Map Container with proper z-index management */}
+      <div className="flex-1 relative overflow-hidden">
         <div 
           ref={mapRef} 
           className="w-full h-full"
           style={{ minHeight: '400px' }}
         />
 
-        {/* Floating Action Buttons */}
-        <div className="absolute right-4 top-4 flex flex-col space-y-2" style={{ zIndex: 2000 }}>
+        {/* Floating Action Buttons - Fixed positioning to avoid overlap */}
+        <div className="absolute right-4 top-4 flex flex-col space-y-2 z-[1000]">
           <Button 
             size="icon" 
             className="bg-green-500 hover:bg-green-600 text-white rounded-full h-12 w-12 shadow-lg"
@@ -306,8 +319,9 @@ const UserMap = () => {
           </Button>
         </div>
 
+        {/* Error message with proper z-index */}
         {locationError && (
-          <div className="absolute top-4 left-4 right-16" style={{ zIndex: 2000 }}>
+          <div className="absolute top-4 left-4 right-20 z-[1000]">
             <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
               <p className="text-sm">{locationError}</p>
             </div>
@@ -317,7 +331,7 @@ const UserMap = () => {
 
       {/* Bus Request Sheet */}
       <Sheet open={showBusRequest} onOpenChange={setShowBusRequest}>
-        <SheetContent side="bottom" className="h-[80vh]">
+        <SheetContent side="bottom" className="h-[80vh] z-[2000]">
           <SheetHeader>
             <SheetTitle>แจ้งขึ้นรถบัส</SheetTitle>
             <SheetDescription>
@@ -357,7 +371,7 @@ const UserMap = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation - Fixed with proper z-index */}
       <div className="bg-white border-t border-gray-200 p-4 relative z-50">
         <div className="flex justify-around items-center">
           <div className="flex flex-col items-center space-y-1">

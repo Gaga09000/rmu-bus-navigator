@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, Bell, User, Home, Calendar, MessageCircle, Play, Pause, Square, Navigation, AlertTriangle } from "lucide-react";
+import { MapPin, Clock, Bell, User, Home, Calendar, MessageCircle, Play, Pause, Square, Navigation, AlertTriangle, Route } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +12,11 @@ const DriverDashboard = () => {
   const navigate = useNavigate();
   const [busStatus, setBusStatus] = useState<'กำลังวิ่ง' | 'รอผู้โดยสาร' | 'ถึงปลายทาง' | 'ปิดงาน'>('ปิดงาน');
   const [isOnDuty, setIsOnDuty] = useState(false);
+  const [currentRoute, setCurrentRoute] = useState('สาย A');
+  const [passengerCount, setPassengerCount] = useState(0);
+  const [todayTrips, setTodayTrips] = useState(8);
+  const [workingHours, setWorkingHours] = useState('0:00');
+  
   const [notifications] = useState([
     { id: 1, message: 'ผู้โดยสารรอขึ้นรถที่หน้าอาคาร 1', location: 'อาคาร 1', time: '2 นาทีที่แล้ว' },
     { id: 2, message: 'ผู้โดยสารรอขึ้นรถที่ลานจอดรถ B', location: 'ลานจอดรถ B', time: '5 นาทีที่แล้ว' }
@@ -29,12 +34,15 @@ const DriverDashboard = () => {
   const handleStartWork = () => {
     setIsOnDuty(true);
     setBusStatus('รอผู้โดยสาร');
+    setWorkingHours('0:15');
     toast.success('เริ่มปฏิบัติงานแล้ว');
   };
 
   const handleEndWork = () => {
     setIsOnDuty(false);
     setBusStatus('ปิดงาน');
+    setPassengerCount(0);
+    setWorkingHours('6:30');
     toast.success('ปิดงานแล้ว');
   };
 
@@ -44,6 +52,15 @@ const DriverDashboard = () => {
       return;
     }
     setBusStatus(newStatus);
+    
+    // Simulate passenger count changes
+    if (newStatus === 'กำลังวิ่ง') {
+      setPassengerCount(prev => Math.min(prev + Math.floor(Math.random() * 5), 40));
+    } else if (newStatus === 'ถึงปลายทาง') {
+      setPassengerCount(0);
+      setTodayTrips(prev => prev + 1);
+    }
+    
     toast.success(`อัปเดตสถานะเป็น: ${newStatus}`);
   };
 
@@ -51,6 +68,22 @@ const DriverDashboard = () => {
     toast.error("แจ้งเหตุฉุกเฉินแล้ว! กำลังติดต่อผู้ดูแลระบบ...", {
       duration: 5000,
     });
+  };
+
+  const handleViewRoute = () => {
+    toast.info(`แสดงเส้นทาง${currentRoute}: อาคารเรียนรวม → หอพัก → คณะต่างๆ`);
+  };
+
+  const handleViewHistory = () => {
+    toast.info("ประวัติการทำงานวันนี้: 8 รอบ, เวลาทำงาน 6:30 ชม.");
+  };
+
+  const handleContactSupport = () => {
+    toast.info("ติดต่อศูนย์ควบคุม: 043-754321 หรือแจ้งผ่านแอป");
+  };
+
+  const handleProfile = () => {
+    toast.info("ข้อมูลคนขับรถ: สมชาย ใจดี | รหัส: DR001 | ใบอนุญาต: A123456");
   };
 
   const getStatusColor = (status: string) => {
@@ -64,23 +97,34 @@ const DriverDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <div className="bg-blue-600 text-white p-4">
+      {/* Enhanced Header */}
+      <div className="bg-gradient-to-r from-green-600 to-emerald-700 text-white p-4 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <h1 className="text-lg font-bold">แผงงานคนขับรถ</h1>
-            <span className="text-xs bg-blue-500 px-2 py-1 rounded-full">
-              คนขับรถ - driver
-            </span>
+            <div className="bg-white/20 p-2 rounded-lg">
+              <Route className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold">แผงงานคนขับรถ</h1>
+              <p className="text-xs text-green-100">ระบบจัดการรถบัสสำหรับคนขับ</p>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="relative">
+          <div className="flex items-center space-x-3">
+            <div className="relative bg-white/20 p-2 rounded-lg">
               <Bell className="h-5 w-5" />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                 2
               </span>
             </div>
-            <Button variant="ghost" size="sm" className="text-white hover:bg-blue-500" onClick={handleLogout}>
+            <div className="bg-white/20 px-3 py-1 rounded-full text-xs">
+              คนขับรถ
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-white hover:bg-white/20 px-3 py-1.5" 
+              onClick={handleLogout}
+            >
               ออกจากระบบ
             </Button>
           </div>
@@ -91,11 +135,27 @@ const DriverDashboard = () => {
         {/* Control Panel */}
         <Card className="bg-white shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">การควบคุมรถบัส</CardTitle>
+            <CardTitle className="text-lg flex items-center justify-between">
+              การควบคุมรถบัส
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleViewRoute}
+                className="text-xs"
+              >
+                <Route className="mr-1 h-3 w-3" />
+                ดูเส้นทาง
+              </Button>
+            </CardTitle>
             <CardDescription className="text-sm text-gray-600">
               สถานะปัจจุบัน: <span className={`px-2 py-1 rounded-full text-white text-xs font-medium ${getStatusColor(busStatus)}`}>
                 {busStatus}
               </span>
+              {isOnDuty && (
+                <span className="ml-2 text-xs">
+                  เส้นทาง: <strong>{currentRoute}</strong>
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -171,8 +231,8 @@ const DriverDashboard = () => {
           </Card>
           <Card className="bg-white shadow-sm">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">25</div>
-              <div className="text-sm text-gray-600">ผู้โดยสารวันนี้</div>
+              <div className="text-2xl font-bold text-blue-600">{passengerCount}</div>
+              <div className="text-sm text-gray-600">ผู้โดยสารปัจจุบัน</div>
             </CardContent>
           </Card>
         </div>
@@ -180,14 +240,14 @@ const DriverDashboard = () => {
         <div className="grid grid-cols-2 gap-4">
           <Card className="bg-white shadow-sm">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">8</div>
+              <div className="text-2xl font-bold text-blue-600">{todayTrips}</div>
               <div className="text-sm text-gray-600">รอบที่ทำวันนี้</div>
             </CardContent>
           </Card>
           <Card className="bg-white shadow-sm">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {isOnDuty ? '6:30' : '0:00'}
+                {isOnDuty ? workingHours : '0:00'}
               </div>
               <div className="text-sm text-gray-600">ชั่วโมงทำงาน</div>
             </CardContent>
@@ -231,21 +291,21 @@ const DriverDashboard = () => {
           </div>
           <button 
             className="flex flex-col items-center space-y-1"
-            onClick={() => toast.info("ดูประวัติการทำงาน")}
+            onClick={handleViewHistory}
           >
             <Calendar className="h-6 w-6 text-gray-400" />
             <span className="text-xs text-gray-400">ประวัติ</span>
           </button>
           <button 
             className="flex flex-col items-center space-y-1"
-            onClick={() => toast.info("ติดต่อเจ้าหน้าที่: 043-754321")}
+            onClick={handleContactSupport}
           >
             <MessageCircle className="h-6 w-6 text-gray-400" />
             <span className="text-xs text-gray-400">ติดต่อ</span>
           </button>
           <button 
             className="flex flex-col items-center space-y-1"
-            onClick={() => toast.info("ข้อมูลคนขับรถ")}
+            onClick={handleProfile}
           >
             <User className="h-6 w-6 text-gray-400" />
             <span className="text-xs text-gray-400">โปรไฟล์</span>
