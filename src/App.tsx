@@ -18,7 +18,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename="/">
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
@@ -27,7 +27,7 @@ const App = () => (
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/index" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          {/* Catch-all route for 404 errors */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
