@@ -2,7 +2,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.4cef032f8ca7447db9c20deffb5abbec',
+  appId: 'com.rmu.busnavigator',
   appName: 'RMU Bus Navigator',
   webDir: 'dist',
   server: {
