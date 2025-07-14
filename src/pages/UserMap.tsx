@@ -1,11 +1,11 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Bell, Menu, MapPin, Clock, Navigation, User, Star, Settings, Home, Bus, MessageCircle, Phone, AlertCircle } from "lucide-react";
+import { Bell, Menu, MapPin, Clock, Navigation, User, Star, Settings, Home, Bus, MessageCircle, Phone, AlertCircle, Wifi, WifiOff, Battery } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useESP32 } from "@/hooks/useESP32";
 import L from 'leaflet';
 
 // Import Leaflet CSS
@@ -20,28 +20,23 @@ interface BusLocation {
   eta: string;
   passengers: number;
   capacity: number;
+  isESP32?: boolean;
+  speed?: number;
+  batteryLevel?: number;
 }
 
 const UserMap = () => {
   const navigate = useNavigate();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const esp32MarkerRef = useRef<L.Marker | null>(null);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number}>({ lat: 16.4322, lng: 103.3656 });
   const [isLoading, setIsLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [showBusRequest, setShowBusRequest] = useState(false);
+  const { esp32Data, isConnected } = useESP32();
   
-  const [busLocations] = useState<BusLocation[]>([
-    { 
-      id: 1, 
-      name: 'สาย A - อาคารเรียนรวม', 
-      lat: 16.4325, 
-      lng: 103.3660, 
-      status: 'กำลังวิ่ง', 
-      eta: '5 นาที',
-      passengers: 15,
-      capacity: 40
-    },
+  const [staticBusLocations] = useState<BusLocation[]>([
     { 
       id: 2, 
       name: 'สาย B - หอพัก', 
@@ -63,6 +58,31 @@ const UserMap = () => {
       capacity: 40
     }
   ]);
+
+  // Combine ESP32 data with static bus data
+  const [busLocations, setBusLocations] = useState<BusLocation[]>(staticBusLocations);
+
+  useEffect(() => {
+    if (esp32Data) {
+      const esp32Bus: BusLocation = {
+        id: 1,
+        name: 'สาย A - อาคารเรียนรวม (ESP32)',
+        lat: esp32Data.lat,
+        lng: esp32Data.lng,
+        status: esp32Data.status,
+        eta: esp32Data.speed > 20 ? '3 นาที' : '5 นาที',
+        passengers: esp32Data.passengers,
+        capacity: 40,
+        isESP32: true,
+        speed: esp32Data.speed,
+        batteryLevel: esp32Data.batteryLevel
+      };
+
+      setBusLocations([esp32Bus, ...staticBusLocations]);
+    } else {
+      setBusLocations(staticBusLocations);
+    }
+  }, [esp32Data]);
   
   const [requestedBus, setRequestedBus] = useState<number | null>(null);
 
@@ -134,14 +154,6 @@ const UserMap = () => {
           iconAnchor: [10, 10],
         });
 
-        // Create custom bus icon
-        const busIcon = L.divIcon({
-          html: `<div style="background-color: #FF6500; color: white; border-radius: 8px; width: 30px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4); font-size: 12px;">🚌</div>`,
-          className: 'custom-bus-marker',
-          iconSize: [30, 20],
-          iconAnchor: [15, 10],
-        });
-
         // Add user marker at RMU
         const userMarker = L.marker([userLocation.lat, userLocation.lng], {
           icon: userIcon
@@ -154,47 +166,6 @@ const UserMap = () => {
           </div>
         `);
 
-        // Add bus markers with click to request functionality
-        busLocations.forEach((bus) => {
-          const busMarker = L.marker([bus.lat, bus.lng], {
-            icon: busIcon
-          }).addTo(map);
-          
-          const statusColor = bus.status === 'กำลังวิ่ง' ? '#22c55e' : '#eab308';
-          const passengerColor = bus.passengers / bus.capacity < 0.5 ? '#22c55e' : 
-                                bus.passengers / bus.capacity < 0.8 ? '#f59e0b' : '#ef4444';
-          
-          busMarker.bindPopup(`
-            <div style="min-width: 200px; padding: 8px;">
-              <h3 style="font-weight: bold; margin-bottom: 8px; color: #1f2937;">${bus.name}</h3>
-              <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span>สถานะ:</span>
-                  <span style="background-color: ${statusColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">
-                    ${bus.status}
-                  </span>
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span>เวลาถึง:</span>
-                  <span style="font-weight: 600; color: #1f2937;">${bus.eta}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span>ผู้โดยสาร:</span>
-                  <span style="color: ${passengerColor}; font-weight: 600;">
-                    ${bus.passengers}/${bus.capacity}
-                  </span>
-                </div>
-                <button onclick="window.requestBus(${bus.id})" style="background-color: #3b82f6; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; width: 100%; margin-top: 8px;">
-                  แจ้งขึ้นรถ
-                </button>
-              </div>
-            </div>
-          `);
-        });
-
-        // Add global function for bus request
-        (window as any).requestBus = handleRequestBus;
-
         mapInstanceRef.current = map;
         console.log('Map initialized successfully with RMU location');
 
@@ -203,14 +174,126 @@ const UserMap = () => {
         setLocationError('เกิดข้อผิดพลาดในการโหลดแผนที่');
       }
     }
+  }, [isLoading, userLocation]);
 
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      // Clear existing bus markers
+      mapInstanceRef.current.eachLayer((layer) => {
+        if (layer instanceof L.Marker && layer !== esp32MarkerRef.current) {
+          const marker = layer as L.Marker;
+          if (marker.options.icon?.options?.className?.includes('custom-bus-marker')) {
+            mapInstanceRef.current?.removeLayer(marker);
+          }
+        }
+      });
+
+      // Add bus markers
+      busLocations.forEach((bus) => {
+        // Create ESP32 or regular bus icon
+        const busIcon = L.divIcon({
+          html: bus.isESP32 ? 
+            `<div style="background-color: #10B981; color: white; border-radius: 8px; width: 35px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4); font-size: 10px; position: relative;">
+              🚌
+              <div style="position: absolute; top: -8px; right: -8px; background: #059669; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 8px;">📡</div>
+            </div>` :
+            `<div style="background-color: #FF6500; color: white; border-radius: 8px; width: 30px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4); font-size: 12px;">🚌</div>`,
+          className: 'custom-bus-marker',
+          iconSize: bus.isESP32 ? [35, 25] : [30, 20],
+          iconAnchor: bus.isESP32 ? [17.5, 12.5] : [15, 10],
+        });
+        
+        const busMarker = L.marker([bus.lat, bus.lng], {
+          icon: busIcon
+        }).addTo(mapInstanceRef.current!);
+
+        if (bus.isESP32) {
+          esp32MarkerRef.current = busMarker;
+        }
+        
+        const statusColor = bus.status === 'กำลังวิ่ง' ? '#22c55e' : '#eab308';
+        const passengerColor = bus.passengers / bus.capacity < 0.5 ? '#22c55e' : 
+                              bus.passengers / bus.capacity < 0.8 ? '#f59e0b' : '#ef4444';
+        
+        const popupContent = bus.isESP32 ? `
+          <div style="min-width: 220px; padding: 8px;">
+            <h3 style="font-weight: bold; margin-bottom: 8px; color: #1f2937; display: flex; align-items: center; gap: 5px;">
+              ${bus.name}
+              <span style="background: #10B981; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px;">ESP32</span>
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>สถานะ:</span>
+                <span style="background-color: ${statusColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">
+                  ${bus.status}
+                </span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>เวลาถึง:</span>
+                <span style="font-weight: 600; color: #1f2937;">${bus.eta}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>ผู้โดยสาร:</span>
+                <span style="color: ${passengerColor}; font-weight: 600;">
+                  ${bus.passengers}/${bus.capacity}
+                </span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>ความเร็ว:</span>
+                <span style="font-weight: 600; color: #1f2937;">${bus.speed || 0} km/h</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>แบตเตอรี่:</span>
+                <span style="font-weight: 600; color: ${(bus.batteryLevel || 0) > 50 ? '#22c55e' : '#ef4444'};">${bus.batteryLevel || 0}%</span>
+              </div>
+              <button onclick="window.requestBus(${bus.id})" style="background-color: #10B981; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; width: 100%; margin-top: 8px;">
+                แจ้งขึ้นรถ (ESP32)
+              </button>
+            </div>
+          </div>
+        ` : `
+          <div style="min-width: 200px; padding: 8px;">
+            <h3 style="font-weight: bold; margin-bottom: 8px; color: #1f2937;">${bus.name}</h3>
+            <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>สถานะ:</span>
+                <span style="background-color: ${statusColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">
+                  ${bus.status}
+                </span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>เวลาถึง:</span>
+                <span style="font-weight: 600; color: #1f2937;">${bus.eta}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>ผู้โดยสาร:</span>
+                <span style="color: ${passengerColor}; font-weight: 600;">
+                  ${bus.passengers}/${bus.capacity}
+                </span>
+              </div>
+              <button onclick="window.requestBus(${bus.id})" style="background-color: #3b82f6; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; width: 100%; margin-top: 8px;">
+                แจ้งขึ้นรถ
+              </button>
+            </div>
+          </div>
+        `;
+
+        busMarker.bindPopup(popupContent);
+      });
+
+      // Add global function for bus request
+      (window as any).requestBus = handleRequestBus;
+    }
+  }, [busLocations, mapInstanceRef.current]);
+
+  useEffect(() => {
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, [isLoading, userLocation, busLocations]);
+  }, []);
 
   if (isLoading) {
     return (
@@ -228,7 +311,7 @@ const UserMap = () => {
 
   return (
     <div className="h-screen flex flex-col bg-white">
-      {/* Enhanced Header */}
+      {/* Enhanced Header with ESP32 status */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 shadow-lg relative z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -237,10 +320,22 @@ const UserMap = () => {
             </div>
             <div>
               <h1 className="text-lg font-bold">แผนที่รถบัส RMU</h1>
-              <p className="text-xs text-blue-100">ระบบติดตามรถบัสมหาวิทยาลัย</p>
+              <p className="text-xs text-blue-100 flex items-center gap-2">
+                ระบบติดตามรถบัสมหาวิทยาลัย
+                <div className="flex items-center gap-1">
+                  {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+                  <span className="text-xs">{isConnected ? 'ESP32 เชื่อมต่อ' : 'ESP32 ยังไม่เชื่อมต่อ'}</span>
+                </div>
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
+            {esp32Data && (
+              <div className="bg-green-500/20 px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                <Battery className="h-3 w-3" />
+                {esp32Data.batteryLevel}%
+              </div>
+            )}
             <div className="relative bg-white/20 p-2 rounded-lg">
               <Bell className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -340,9 +435,14 @@ const UserMap = () => {
           </SheetHeader>
           <div className="mt-6 space-y-4">
             {busLocations.map((bus) => (
-              <div key={bus.id} className="p-4 border rounded-lg bg-white shadow-sm">
+              <div key={bus.id} className={`p-4 border rounded-lg shadow-sm ${bus.isESP32 ? 'bg-green-50 border-green-200' : 'bg-white'}`}>
                 <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-semibold text-gray-800">{bus.name}</h3>
+                  <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                    {bus.name}
+                    {bus.isESP32 && (
+                      <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs">ESP32</span>
+                    )}
+                  </h3>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     bus.status === 'กำลังวิ่ง' 
                       ? 'bg-green-100 text-green-800' 
@@ -355,15 +455,21 @@ const UserMap = () => {
                   <span>เวลาถึง: <strong>{bus.eta}</strong></span>
                   <span>ผู้โดยสาร: <strong>{bus.passengers}/{bus.capacity}</strong></span>
                 </div>
+                {bus.isESP32 && (
+                  <div className="flex justify-between items-center text-sm text-gray-600 mb-3">
+                    <span>ความเร็ว: <strong>{bus.speed} km/h</strong></span>
+                    <span>แบตเตอรี่: <strong>{bus.batteryLevel}%</strong></span>
+                  </div>
+                )}
                 <Button 
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className={`w-full ${bus.isESP32 ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                   onClick={() => {
                     handleRequestBus(bus.id);
                     setShowBusRequest(false);
                   }}
                   disabled={requestedBus === bus.id}
                 >
-                  {requestedBus === bus.id ? 'แจ้งแล้ว' : 'แจ้งขึ้นรถ'}
+                  {requestedBus === bus.id ? 'แจ้งแล้ว' : `แจ้งขึ้นรถ${bus.isESP32 ? ' (ESP32)' : ''}`}
                 </Button>
               </div>
             ))}
