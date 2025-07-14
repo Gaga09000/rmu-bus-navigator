@@ -7,38 +7,54 @@ interface ESP32Data {
   passengers: number;
   speed: number;
   batteryLevel: number;
+  gpsValid?: boolean;
+  timestamp?: number;
 }
 
 class ESP32Service {
   private ws: WebSocket | null = null;
   private reconnectInterval: number = 5000;
   private listeners: ((data: ESP32Data) => void)[] = [];
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number = 5;
 
   connect() {
-    // For development, we'll use a local WebSocket server
-    // In production, you might want to use your actual ESP32 IP
-    const wsUrl = 'ws://192.168.1.100:81'; // Change this to your ESP32 IP
+    // เปลี่ยน IP address นี้เป็น IP ของ ESP32 ของคุณ
+    const wsUrl = 'ws://192.168.1.100:81'; // แก้ไข IP address ตรงนี้
     
     try {
+      console.log('กำลังเชื่อมต่อ ESP32 ที่:', wsUrl);
       this.ws = new WebSocket(wsUrl);
       
       this.ws.onopen = () => {
-        console.log('Connected to ESP32');
+        console.log('เชื่อมต่อ ESP32 สำเร็จ!');
+        this.reconnectAttempts = 0;
+        
+        // ส่งคำสั่งขอข้อมูล
+        this.sendCommand('get_data');
       };
       
       this.ws.onmessage = (event) => {
         try {
           const data: ESP32Data = JSON.parse(event.data);
-          console.log('Received ESP32 data:', data);
+          console.log('รับข้อมูลจาก ESP32:', data);
           this.notifyListeners(data);
         } catch (error) {
           console.error('Error parsing ESP32 data:', error);
         }
       };
       
-      this.ws.onclose = () => {
-        console.log('ESP32 connection closed, attempting to reconnect...');
-        setTimeout(() => this.connect(), this.reconnectInterval);
+      this.ws.onclose = (event) => {
+        console.log('การเชื่อมต่อ ESP32 ปิด:', event.reason);
+        
+        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+          this.reconnectAttempts++;
+          console.log(`พยายามเชื่อมต่อใหม่ครั้งที่ ${this.reconnectAttempts}...`);
+          setTimeout(() => this.connect(), this.reconnectInterval);
+        } else {
+          console.log('ไม่สามารถเชื่อมต่อ ESP32 ได้ เปลี่ยนเป็นโหมดจำลอง');
+          this.startMockData();
+        }
       };
       
       this.ws.onerror = (error) => {
@@ -46,14 +62,15 @@ class ESP32Service {
       };
       
     } catch (error) {
-      console.error('Failed to connect to ESP32:', error);
-      // Fallback to mock data for development
+      console.error('ไม่สามารถเชื่อมต่อ ESP32:', error);
       this.startMockData();
     }
   }
 
   private startMockData() {
-    // Mock data for development when ESP32 is not available
+    console.log('เริ่มโหมดจำลองข้อมูล ESP32');
+    
+    // ข้อมูลจำลองสำหรับการพัฒนาเมื่อ ESP32 ไม่พร้อมใช้งาน
     setInterval(() => {
       const mockData: ESP32Data = {
         busId: 1,
@@ -63,6 +80,8 @@ class ESP32Service {
         passengers: Math.floor(Math.random() * 25) + 5,
         speed: Math.floor(Math.random() * 40) + 10,
         batteryLevel: Math.floor(Math.random() * 30) + 70,
+        gpsValid: true,
+        timestamp: Date.now(),
       };
       this.notifyListeners(mockData);
     }, 3000);
@@ -81,7 +100,11 @@ class ESP32Service {
 
   sendCommand(command: string) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ command }));
+      const commandData = { command };
+      this.ws.send(JSON.stringify(commandData));
+      console.log('ส่งคำสั่งไป ESP32:', command);
+    } else {
+      console.log('ESP32 ไม่ได้เชื่อมต่อ ไม่สามารถส่งคำสั่งได้:', command);
     }
   }
 
@@ -90,6 +113,15 @@ class ESP32Service {
       this.ws.close();
       this.ws = null;
     }
+  }
+
+  // เพิ่มเมธอดสำหรับส่งคำสั่งพิเศษ
+  emergencyAlert() {
+    this.sendCommand('emergency');
+  }
+
+  resetBusData() {
+    this.sendCommand('reset');
   }
 }
 
