@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,10 +10,66 @@ import { useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  
+  // Working hours configuration (24-hour format)
+  const WORKING_HOURS = {
+    start: 6, // 6:00 AM
+    end: 18   // 6:00 PM
+  };
+
+  const getCurrentTime = () => new Date();
+  const getCurrentHour = () => getCurrentTime().getHours();
+  
+  const isWorkingHours = () => {
+    const hour = getCurrentHour();
+    return hour >= WORKING_HOURS.start && hour < WORKING_HOURS.end;
+  };
+
+  const getBusStatus = (originalStatus: string, lastUpdateTime?: Date) => {
+    if (!isWorkingHours()) {
+      return 'ปิดงาน';
+    }
+    
+    // Check if bus hasn't been updated for more than 30 minutes during working hours
+    if (lastUpdateTime) {
+      const timeDiff = getCurrentTime().getTime() - lastUpdateTime.getTime();
+      const minutesDiff = timeDiff / (1000 * 60);
+      if (minutesDiff > 30) {
+        return 'ปิดงาน';
+      }
+    }
+    
+    return originalStatus;
+  };
+
   const [buses, setBuses] = useState([
-    { id: 1, name: 'สาย A', driver: 'สมชาย ใจดี', status: 'กำลังวิ่ง', passengers: 15, route: 'อาคารเรียนรวม - หอพัก' },
-    { id: 2, name: 'สาย B', driver: 'สมหญิง รักดี', status: 'รอผู้โดยสาร', passengers: 8, route: 'คณะวิทยาศาสตร์ - ลานจอดรถ' },
-    { id: 3, name: 'สาย C', driver: 'สมศรี มั่นคง', status: 'ถึงปลายทาง', passengers: 0, route: 'โรงอาหาร - หอสมุด' }
+    { 
+      id: 1, 
+      name: 'สาย A', 
+      driver: 'สมชาย ใจดี', 
+      status: 'กำลังวิ่ง', 
+      passengers: 15, 
+      route: 'อาคารเรียนรวม - หอพัก',
+      lastUpdate: new Date()
+    },
+    { 
+      id: 2, 
+      name: 'สาย B', 
+      driver: 'สมหญิง รักดี', 
+      status: 'รอผู้โดยสาร', 
+      passengers: 8, 
+      route: 'คณะวิทยาศาสตร์ - ลานจอดรถ',
+      lastUpdate: new Date()
+    },
+    { 
+      id: 3, 
+      name: 'สาย C', 
+      driver: 'สมศรี มั่นคง', 
+      status: 'ถึงปลายทาง', 
+      passengers: 0, 
+      route: 'โรงอาหาร - หอสมุด',
+      lastUpdate: new Date()
+    }
   ]);
 
   const [users] = useState([
@@ -25,12 +80,45 @@ const AdminDashboard = () => {
 
   const [systemStats, setSystemStats] = useState({
     totalBuses: buses.length,
-    activeBuses: buses.filter(b => b.status === 'กำลังวิ่ง').length,
+    activeBuses: 0, // Will be calculated based on actual status
     totalUsers: 156,
-    onlineDrivers: 3,
+    onlineDrivers: 0, // Will be calculated based on working hours
     todayRides: 89,
     systemUptime: '99.9%'
   });
+
+  const [currentTime, setCurrentTime] = useState(getCurrentTime());
+
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(getCurrentTime());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Update bus statuses based on working hours and last update time
+  useEffect(() => {
+    const updatedBuses = buses.map(bus => ({
+      ...bus,
+      status: getBusStatus(bus.status, bus.lastUpdate)
+    }));
+
+    const activeBuses = updatedBuses.filter(bus => 
+      bus.status === 'กำลังวิ่ง' || bus.status === 'รอผู้โดยสาร' || bus.status === 'ถึงปลายทาง'
+    ).length;
+
+    const onlineDrivers = isWorkingHours() ? activeBuses : 0;
+
+    setSystemStats(prev => ({
+      ...prev,
+      activeBuses,
+      onlineDrivers
+    }));
+
+    setBuses(updatedBuses);
+  }, [currentTime]);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -48,7 +136,8 @@ const AdminDashboard = () => {
       driver: 'คนขับใหม่',
       status: 'ปิดงาน' as const,
       passengers: 0,
-      route: 'เส้นทางใหม่'
+      route: 'เส้นทางใหม่',
+      lastUpdate: new Date()
     };
     setBuses([...buses, newBus]);
     setSystemStats(prev => ({ ...prev, totalBuses: prev.totalBuses + 1 }));
@@ -66,10 +155,19 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteBus = (busId: number) => {
-    const bus = buses.find(b => b.id === busId);
+    const bus = buses.find(b => b.id !== busId);
     setBuses(buses.filter(b => b.id !== busId));
     setSystemStats(prev => ({ ...prev, totalBuses: prev.totalBuses - 1 }));
     toast.success(`ลบรถ ${bus?.name} สำเร็จ`);
+  };
+
+  const handleForceOffline = (busId: number) => {
+    const updatedBuses = buses.map(bus => 
+      bus.id === busId ? { ...bus, status: 'ปิดงาน' as const, passengers: 0 } : bus
+    );
+    setBuses(updatedBuses);
+    const bus = buses.find(b => b.id === busId);
+    toast.success(`บังคับให้รถ ${bus?.name} ออฟไลน์แล้ว`);
   };
 
   const handleManageNotifications = () => {
@@ -85,13 +183,20 @@ const AdminDashboard = () => {
   };
 
   const handleRefreshData = () => {
-    // Simulate real-time data refresh
+    // Simulate real-time data refresh and apply working hours logic
+    const updatedBuses = buses.map(bus => ({
+      ...bus,
+      status: getBusStatus(bus.status, bus.lastUpdate),
+      lastUpdate: new Date()
+    }));
+    
+    setBuses(updatedBuses);
     setSystemStats(prev => ({
       ...prev,
       todayRides: prev.todayRides + Math.floor(Math.random() * 5),
       totalUsers: prev.totalUsers + Math.floor(Math.random() * 3) - 1
     }));
-    toast.success("รีเฟรชข้อมูลแล้ว - อัปเดตข้อมูลเรียลไทม์");
+    toast.success("รีเฟรชข้อมูลแล้ว - ตรวจสอบเวลาทำงานและสถานะรถ");
   };
 
   const handleSystemMaintenance = () => {
@@ -111,8 +216,16 @@ const AdminDashboard = () => {
       case 'กำลังวิ่ง': return 'default';
       case 'รอผู้โดยสาร': return 'secondary';
       case 'ถึงปลายทาง': return 'outline';
+      case 'ปิดงาน': return 'destructive';
       default: return 'outline';
     }
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('th-TH', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
@@ -126,7 +239,11 @@ const AdminDashboard = () => {
             </div>
             <div>
               <h1 className="text-lg font-bold">แผงควบคุมผู้ดูแลระบบ</h1>
-              <p className="text-xs text-purple-100">ระบบจัดการและควบคุมรถบัส RMU</p>
+              <p className="text-xs text-purple-100">
+                เวลาปัจจุบัน: {formatTime(currentTime)} | 
+                เวลาทำงาน: {WORKING_HOURS.start}:00-{WORKING_HOURS.end}:00 | 
+                สถานะ: {isWorkingHours() ? 'ในเวลาทำงาน' : 'นอกเวลาทำงาน'}
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
@@ -228,10 +345,15 @@ const AdminDashboard = () => {
               <CardHeader>
                 <CardTitle className="text-lg flex items-center justify-between">
                   สถานะรถบัสปัจจุบัน
-                  <Button variant="outline" size="sm" onClick={handleRefreshData}>
-                    <RefreshCw className="mr-1 h-3 w-3" />
-                    รีเฟรช
-                  </Button>
+                  <div className="flex space-x-2">
+                    <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                      {isWorkingHours() ? '🟢 เวลาทำงาน' : '🔴 นอกเวลา'}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={handleRefreshData}>
+                      <RefreshCw className="mr-1 h-3 w-3" />
+                      รีเฟรช
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -242,12 +364,25 @@ const AdminDashboard = () => {
                         <div className="font-medium text-gray-800">{bus.name}</div>
                         <div className="text-sm text-gray-600">คนขับ: {bus.driver}</div>
                         <div className="text-xs text-gray-500">{bus.route}</div>
+                        <div className="text-xs text-gray-400">
+                          อัปเดตล่าสุด: {formatTime(bus.lastUpdate)}
+                        </div>
                       </div>
                       <div className="text-right">
                         <Badge variant={getStatusBadgeVariant(bus.status)} className="mb-1">
                           {bus.status}
                         </Badge>
                         <div className="text-sm text-gray-600">ผู้โดยสาร: {bus.passengers}</div>
+                        {bus.status !== 'ปิดงาน' && !isWorkingHours() && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-1 text-xs"
+                            onClick={() => handleForceOffline(bus.id)}
+                          >
+                            บังคับออฟไลน์
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
