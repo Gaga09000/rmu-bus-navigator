@@ -311,53 +311,49 @@ const UserMap = () => {
 
   return (
     <div className="h-screen flex flex-col bg-white">
-      {/* Enhanced Header with ESP32 status */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 shadow-lg relative z-50">
+      {/* Mobile-optimized Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3 shadow-lg relative z-50">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="bg-white/20 p-2 rounded-lg">
-              <MapPin className="h-6 w-6" />
+          <div className="flex items-center space-x-2">
+            <div className="bg-white/20 p-1.5 rounded-lg">
+              <MapPin className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg font-bold">แผนที่รถบัส RMU</h1>
-              <p className="text-xs text-blue-100 flex items-center gap-2">
-                ระบบติดตามรถบัสมหาวิทยาลัย
+              <h1 className="text-base font-bold">RMU Bus Navigator</h1>
+              <p className="text-xs text-blue-100 flex items-center gap-1">
                 <div className="flex items-center gap-1">
                   {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-                  <span className="text-xs">{isConnected ? 'ESP32 เชื่อมต่อ' : 'ESP32 ยังไม่เชื่อมต่อ'}</span>
+                  <span className="text-xs">{isConnected ? 'เชื่อมต่อ' : 'ออฟไลน์'}</span>
                 </div>
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             {esp32Data && (
               <div className="bg-green-500/20 px-2 py-1 rounded-full text-xs flex items-center gap-1">
                 <Battery className="h-3 w-3" />
                 {esp32Data.batteryLevel}%
               </div>
             )}
-            <div className="relative bg-white/20 p-2 rounded-lg">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+            <div className="relative bg-white/20 p-1.5 rounded-lg">
+              <Bell className="h-4 w-4" />
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center text-[10px]">
                 2
               </span>
-            </div>
-            <div className="bg-white/20 px-3 py-1 rounded-full text-xs">
-              ผู้ใช้งาน
             </div>
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-white hover:bg-white/20 px-3 py-1.5" 
+              className="text-white hover:bg-white/20 px-2 py-1 text-xs" 
               onClick={handleLogout}
             >
-              ออกจากระบบ
+              ออก
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Map Container with proper z-index management */}
+      {/* Map Container */}
       <div className="flex-1 relative overflow-hidden">
         <div 
           ref={mapRef} 
@@ -365,85 +361,85 @@ const UserMap = () => {
           style={{ minHeight: '400px' }}
         />
 
-        {/* Floating Action Buttons - Fixed positioning to avoid overlap */}
-        <div className="absolute right-4 top-4 flex flex-col space-y-2 z-[1000]">
+        {/* Mobile-optimized Floating Action Buttons */}
+        <div className="absolute right-3 top-3 flex flex-col space-y-2 z-[1000]">
           <Button 
             size="icon" 
-            className="bg-green-500 hover:bg-green-600 text-white rounded-full h-12 w-12 shadow-lg"
+            className="bg-green-500 hover:bg-green-600 text-white rounded-full h-10 w-10 shadow-lg"
             onClick={handleCenterMap}
             title="กลับไปที่ตำแหน่งของคุณ"
           >
-            <MapPin className="h-6 w-6" />
+            <MapPin className="h-5 w-5" />
           </Button>
           <Button 
             size="icon" 
-            className="bg-blue-500 hover:bg-blue-600 text-white rounded-full h-12 w-12 shadow-lg"
+            className="bg-blue-500 hover:bg-blue-600 text-white rounded-full h-10 w-10 shadow-lg"
             onClick={handleShowSchedule}
             title="ดูตารางรถ"
           >
-            <Bus className="h-6 w-6" />
+            <Bus className="h-5 w-5" />
           </Button>
           <Button 
             size="icon" 
-            className="bg-purple-500 hover:bg-purple-600 text-white rounded-full h-12 w-12 shadow-lg"
-            onClick={() => toast.info("แสดงเวลาทำงาน: 06:00 - 18:00")}
+            className="bg-purple-500 hover:bg-purple-600 text-white rounded-full h-10 w-10 shadow-lg"
+            onClick={() => toast.info("เวลาทำงาน: 06:00 - 18:00")}
             title="เวลาทำงาน"
           >
-            <Clock className="h-6 w-6" />
+            <Clock className="h-5 w-5" />
           </Button>
           <div className="relative">
             <Button 
               size="icon" 
-              className="bg-orange-500 hover:bg-orange-600 text-white rounded-full h-12 w-12 shadow-lg"
+              className="bg-orange-500 hover:bg-orange-600 text-white rounded-full h-10 w-10 shadow-lg"
               onClick={() => toast.info("การแจ้งเตือน: รถสาย A กำลังมาถึง")}
               title="การแจ้งเตือน"
             >
-              <Bell className="h-6 w-6" />
+              <Bell className="h-5 w-5" />
             </Button>
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center text-[10px]">
               2
             </span>
           </div>
           <Button 
             size="icon" 
-            className="bg-red-500 hover:bg-red-600 text-white rounded-full h-12 w-12 shadow-lg"
+            className="bg-red-500 hover:bg-red-600 text-white rounded-full h-10 w-10 shadow-lg"
             onClick={handleEmergency}
             title="ฉุกเฉิน"
           >
-            <AlertCircle className="h-6 w-6" />
+            <AlertCircle className="h-5 w-5" />
           </Button>
         </div>
 
-        {/* Error message with proper z-index */}
+        {/* Error message */}
         {locationError && (
-          <div className="absolute top-4 left-4 right-20 z-[1000]">
-            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-              <p className="text-sm">{locationError}</p>
+          <div className="absolute top-3 left-3 right-16 z-[1000]">
+            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-3 py-2 rounded text-sm">
+              <p>{locationError}</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Bus Request Sheet */}
+      {/* Bus Request Sheet - Mobile optimized */}
       <Sheet open={showBusRequest} onOpenChange={setShowBusRequest}>
-        <SheetContent side="bottom" className="h-[80vh] z-[2000]">
-          <SheetHeader>
-            <SheetTitle>แจ้งขึ้นรถบัส</SheetTitle>
-            <SheetDescription>
+        <SheetContent side="bottom" className="h-[85vh] z-[2000]">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="text-lg">แจ้งขึ้นรถบัส</SheetTitle>
+            <SheetDescription className="text-sm">
               เลือกรถบัสที่ต้องการขึ้น
             </SheetDescription>
           </SheetHeader>
-          <div className="mt-6 space-y-4">
+          <div className="space-y-3 overflow-y-auto max-h-[70vh]">
             {busLocations.map((bus) => (
-              <div key={bus.id} className={`p-4 border rounded-lg shadow-sm ${bus.isESP32 ? 'bg-green-50 border-green-200' : 'bg-white'}`}>
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                    {bus.name}
+              <div key={bus.id} className={`p-3 border rounded-lg shadow-sm ${bus.isESP32 ? 'bg-green-50 border-green-200' : 'bg-white'}`}>
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-semibold text-gray-800 flex items-center gap-2 text-sm">
+                    <span className="truncate">{bus.name}</span>
                     {bus.isESP32 && (
-                      <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs">ESP32</span>
+                      <span className="bg-green-500 text-white px-2 py-0.5 rounded-full text-xs shrink-0">ESP32</span>
                     )}
                   </h3>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
                     bus.status === 'กำลังวิ่ง' 
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-yellow-100 text-yellow-800'
@@ -451,18 +447,18 @@ const UserMap = () => {
                     {bus.status}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-sm text-gray-600 mb-3">
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-3">
                   <span>เวลาถึง: <strong>{bus.eta}</strong></span>
                   <span>ผู้โดยสาร: <strong>{bus.passengers}/{bus.capacity}</strong></span>
+                  {bus.isESP32 && (
+                    <>
+                      <span>ความเร็ว: <strong>{bus.speed} km/h</strong></span>
+                      <span>แบตเตอรี่: <strong>{bus.batteryLevel}%</strong></span>
+                    </>
+                  )}
                 </div>
-                {bus.isESP32 && (
-                  <div className="flex justify-between items-center text-sm text-gray-600 mb-3">
-                    <span>ความเร็ว: <strong>{bus.speed} km/h</strong></span>
-                    <span>แบตเตอรี่: <strong>{bus.batteryLevel}%</strong></span>
-                  </div>
-                )}
                 <Button 
-                  className={`w-full ${bus.isESP32 ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                  className={`w-full text-sm ${bus.isESP32 ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                   onClick={() => {
                     handleRequestBus(bus.id);
                     setShowBusRequest(false);
@@ -477,33 +473,33 @@ const UserMap = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Bottom Navigation - Fixed with proper z-index */}
-      <div className="bg-white border-t border-gray-200 p-4 relative z-50">
+      {/* Mobile-optimized Bottom Navigation */}
+      <div className="bg-white border-t border-gray-200 p-2 relative z-50 safe-area-bottom">
         <div className="flex justify-around items-center">
-          <div className="flex flex-col items-center space-y-1">
-            <Home className="h-6 w-6 text-blue-600" />
+          <div className="flex flex-col items-center space-y-1 p-2">
+            <Home className="h-5 w-5 text-blue-600" />
             <span className="text-xs text-blue-600 font-medium">แผนที่</span>
           </div>
           <button 
-            className="flex flex-col items-center space-y-1"
+            className="flex flex-col items-center space-y-1 p-2"
             onClick={handleShowSchedule}
           >
-            <Bus className="h-6 w-6 text-gray-400" />
-            <span className="text-xs text-gray-400">ดูตารางรถ</span>
+            <Bus className="h-5 w-5 text-gray-400" />
+            <span className="text-xs text-gray-400">ตารางรถ</span>
           </button>
           <button 
-            className="flex flex-col items-center space-y-1"
+            className="flex flex-col items-center space-y-1 p-2"
             onClick={() => toast.info("ติดต่อเจ้าหน้าที่: 043-754321")}
           >
-            <MessageCircle className="h-6 w-6 text-gray-400" />
+            <MessageCircle className="h-5 w-5 text-gray-400" />
             <span className="text-xs text-gray-400">ติดต่อ</span>
           </button>
           <button 
-            className="flex flex-col items-center space-y-1"
+            className="flex flex-col items-center space-y-1 p-2"
             onClick={() => toast.info("ข้อมูลผู้ใช้งาน")}
           >
-            <User className="h-6 w-6 text-gray-400" />
-            <span className="text-xs text-gray-400">บัญชีผู้ใช้</span>
+            <User className="h-5 w-5 text-gray-400" />
+            <span className="text-xs text-gray-400">บัญชี</span>
           </button>
         </div>
       </div>
