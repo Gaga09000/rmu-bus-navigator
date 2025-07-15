@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,17 +10,52 @@ import { useNavigate } from "react-router-dom";
 
 const DriverDashboard = () => {
   const navigate = useNavigate();
+  
+  // Working hours configuration (24-hour format)
+  const WORKING_HOURS = {
+    start: 6, // 6:00 AM
+    end: 18   // 6:00 PM
+  };
+
+  const getCurrentTime = () => new Date();
+  const getCurrentHour = () => getCurrentTime().getHours();
+  
+  const isWorkingHours = () => {
+    const hour = getCurrentHour();
+    return hour >= WORKING_HOURS.start && hour < WORKING_HOURS.end;
+  };
+
   const [busStatus, setBusStatus] = useState<'กำลังวิ่ง' | 'รอผู้โดยสาร' | 'ถึงปลายทาง' | 'ปิดงาน'>('ปิดงาน');
   const [isOnDuty, setIsOnDuty] = useState(false);
   const [currentRoute, setCurrentRoute] = useState('สาย A');
   const [passengerCount, setPassengerCount] = useState(0);
   const [todayTrips, setTodayTrips] = useState(8);
   const [workingHours, setWorkingHours] = useState('0:00');
+  const [currentTime, setCurrentTime] = useState(getCurrentTime());
   
   const [notifications] = useState([
     { id: 1, message: 'ผู้โดยสารรอขึ้นรถที่หน้าอาคาร 1', location: 'อาคาร 1', time: '2 นาทีที่แล้ว' },
     { id: 2, message: 'ผู้โดยสารรอขึ้นรถที่ลานจอดรถ B', location: 'ลานจอดรถ B', time: '5 นาทีที่แล้ว' }
   ]);
+
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(getCurrentTime());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Check working hours and automatically set bus offline if outside working hours
+  useEffect(() => {
+    if (!isWorkingHours() && isOnDuty) {
+      setIsOnDuty(false);
+      setBusStatus('ปิดงาน');
+      setPassengerCount(0);
+      toast.info(`เลยเวลาทำงานแล้ว (${WORKING_HOURS.start}:00-${WORKING_HOURS.end}:00) รถบัสปิดงานอัตโนมัติ`);
+    }
+  }, [currentTime, isOnDuty]);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -32,6 +67,11 @@ const DriverDashboard = () => {
   };
 
   const handleStartWork = () => {
+    if (!isWorkingHours()) {
+      toast.error(`นอกเวลาทำงาน! เวลาทำงาน: ${WORKING_HOURS.start}:00-${WORKING_HOURS.end}:00`);
+      return;
+    }
+    
     setIsOnDuty(true);
     setBusStatus('รอผู้โดยสาร');
     setWorkingHours('0:15');
@@ -51,6 +91,12 @@ const DriverDashboard = () => {
       toast.error('กรุณาเริ่มปฏิบัติงานก่อน');
       return;
     }
+
+    if (!isWorkingHours()) {
+      toast.error(`นอกเวลาทำงาน! เวลาทำงาน: ${WORKING_HOURS.start}:00-${WORKING_HOURS.end}:00`);
+      return;
+    }
+    
     setBusStatus(newStatus);
     
     // Simulate passenger count changes
@@ -95,6 +141,13 @@ const DriverDashboard = () => {
     }
   };
 
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('th-TH', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Enhanced Header */}
@@ -106,7 +159,11 @@ const DriverDashboard = () => {
             </div>
             <div>
               <h1 className="text-lg font-bold">แผงงานคนขับรถ</h1>
-              <p className="text-xs text-green-100">ระบบจัดการรถบัสสำหรับคนขับ</p>
+              <p className="text-xs text-green-100">
+                เวลาปัจจุบัน: {formatTime(currentTime)} | 
+                เวลาทำงาน: {WORKING_HOURS.start}:00-{WORKING_HOURS.end}:00 | 
+                สถานะ: {isWorkingHours() ? 'ในเวลาทำงาน' : 'นอกเวลาทำงาน'}
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
@@ -161,13 +218,23 @@ const DriverDashboard = () => {
           <CardContent>
             <div className="space-y-4">
               {!isOnDuty ? (
-                <Button 
-                  className="w-full bg-green-500 hover:bg-green-600 text-white py-3 text-base font-medium"
-                  onClick={handleStartWork}
-                >
-                  <Play className="mr-2 h-5 w-5" />
-                  เริ่มปฏิบัติงาน
-                </Button>
+                <div className="space-y-2">
+                  <Button 
+                    className={`w-full text-white py-3 text-base font-medium ${
+                      isWorkingHours() ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 hover:bg-gray-500'
+                    }`}
+                    onClick={handleStartWork}
+                    disabled={!isWorkingHours()}
+                  >
+                    <Play className="mr-2 h-5 w-5" />
+                    {isWorkingHours() ? 'เริ่มปฏิบัติงาน' : 'นอกเวลาทำงาน'}
+                  </Button>
+                  {!isWorkingHours() && (
+                    <p className="text-xs text-gray-500 text-center">
+                      เวลาทำงาน: {WORKING_HOURS.start}:00 - {WORKING_HOURS.end}:00
+                    </p>
+                  )}
+                </div>
               ) : (
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">
@@ -175,6 +242,7 @@ const DriverDashboard = () => {
                       variant={busStatus === 'รอผู้โดยสาร' ? 'default' : 'outline'}
                       onClick={() => updateStatus('รอผู้โดยสาร')}
                       className="text-sm"
+                      disabled={!isWorkingHours()}
                     >
                       <Pause className="mr-1 h-4 w-4" />
                       รอผู้โดยสาร
@@ -183,6 +251,7 @@ const DriverDashboard = () => {
                       variant={busStatus === 'กำลังวิ่ง' ? 'default' : 'outline'}
                       onClick={() => updateStatus('กำลังวิ่ง')}
                       className="text-sm"
+                      disabled={!isWorkingHours()}
                     >
                       <Navigation className="mr-1 h-4 w-4" />
                       กำลังวิ่ง
@@ -192,6 +261,7 @@ const DriverDashboard = () => {
                     variant={busStatus === 'ถึงปลายทาง' ? 'default' : 'outline'}
                     onClick={() => updateStatus('ถึงปลายทาง')}
                     className="w-full text-sm"
+                    disabled={!isWorkingHours()}
                   >
                     <MapPin className="mr-1 h-4 w-4" />
                     ถึงปลายทาง
@@ -224,7 +294,7 @@ const DriverDashboard = () => {
           <Card className="bg-white shadow-sm">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {isOnDuty ? '1' : '0'}
+                {isOnDuty && isWorkingHours() ? '1' : '0'}
               </div>
               <div className="text-sm text-gray-600">รถบัสในการดูแล</div>
             </CardContent>
@@ -247,7 +317,7 @@ const DriverDashboard = () => {
           <Card className="bg-white shadow-sm">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {isOnDuty ? workingHours : '0:00'}
+                {isOnDuty && isWorkingHours() ? workingHours : '0:00'}
               </div>
               <div className="text-sm text-gray-600">ชั่วโมงทำงาน</div>
             </CardContent>
