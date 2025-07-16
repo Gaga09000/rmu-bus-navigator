@@ -20,13 +20,13 @@ const App = () => (
       <Sonner />
       <BrowserRouter basename="/">
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/map" element={<UserMap />} />
           <Route path="/driver" element={<DriverDashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
-          <Route path="/index" element={<Index />} />
+          <Route path="/index" element={<Navigate to="/" replace />} />
           {/* Catch-all route for 404 errors */}
           <Route path="*" element={<NotFound />} />
         </Routes>
