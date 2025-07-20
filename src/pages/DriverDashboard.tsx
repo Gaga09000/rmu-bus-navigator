@@ -33,6 +33,15 @@ const DriverDashboard = () => {
   const [workingHours, setWorkingHours] = useState('0:00');
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
   
+  const [busStops] = useState([
+    { id: 1, name: 'อาคาร 1', waitingCount: 2 },
+    { id: 2, name: 'ลานจอดรถ B', waitingCount: 1 },
+    { id: 3, name: 'หอพักนักศึกษา', waitingCount: 0 },
+    { id: 4, name: 'คณะวิศวกรรมศาสตร์', waitingCount: 3 },
+    { id: 5, name: 'คณะแพทยศาสตร์', waitingCount: 0 },
+    { id: 6, name: 'โรงอาหารกลาง', waitingCount: 1 },
+  ]);
+
   const [notifications] = useState([
     { id: 1, message: 'ผู้โดยสารรอขึ้นรถที่หน้าอาคาร 1', location: 'อาคาร 1', time: '2 นาทีที่แล้ว' },
     { id: 2, message: 'ผู้โดยสารรอขึ้นรถที่ลานจอดรถ B', location: 'ลานจอดรถ B', time: '5 นาทีที่แล้ว' }
@@ -323,6 +332,43 @@ const DriverDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Bus Stops Status */}
+        <Card className="bg-white shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">สถานีรถบัส</CardTitle>
+            <CardDescription className="text-sm text-gray-600">
+              แสดงจำนวนผู้โดยสารที่รอขึ้นรถแต่ละป้าย
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {busStops.map((stop) => (
+                <div key={stop.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <MapPin className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{stop.name}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {stop.waitingCount > 0 ? (
+                      <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200">
+                        {stop.waitingCount} คนรอ
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-gray-500">
+                        ไม่มีคนรอ
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Notifications */}
         <Card className="bg-white shadow-sm">
